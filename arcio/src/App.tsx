@@ -5,6 +5,7 @@ import Navbar from './components/navbar'
 import PortfolioIQHero from './components/Hero'
 import TrustBar from './components/Trustbar'
 import Features from './components/features'
+import HowItWorks from './components/HowitWorks'
 
 
 
@@ -15,6 +16,7 @@ return(
    <PortfolioIQHero/>
    <TrustBar/>
    <Features/>
+   <HowItWorks/>
    
   </div>
 )
