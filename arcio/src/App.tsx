@@ -6,6 +6,8 @@ import PortfolioIQHero from './components/Hero'
 import TrustBar from './components/Trustbar'
 import Features from './components/features'
 import HowItWorks from './components/HowitWorks'
+import CTA from './components/Cta'
+import Footer from './components/footer'
 
 
 
@@ -17,6 +19,8 @@ return(
    <TrustBar/>
    <Features/>
    <HowItWorks/>
+   <CTA/>
+   <Footer/>
    
   </div>
 )

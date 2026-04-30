@@ -100,7 +100,7 @@ const HowItWorks = () => {
   return (
     <section
       ref={sectionRef}
-      className="relative bg-[#F8F6F2] py-24 overflow-hidden"
+      className="relative bg-[#Fafaf8] py-24 overflow-hidden"
     >
    
       <div

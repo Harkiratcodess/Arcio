@@ -2,7 +2,7 @@ import React from "react";
 
 const PortfolioIQHero: React.FC = () => {
   return (
-    <section className="relative w-full bg-white overflow-hidden font-sans">
+    <section className="relative w-full bg-[#fafaf8] overflow-hidden font-sans">
       <div
         className="absolute inset-0 pointer-events-none opacity-50"
         style={{
@@ -21,7 +21,7 @@ const PortfolioIQHero: React.FC = () => {
           />
         ))}
       </div>
-      <div className="relative max-w-7xl mx-auto px-6 lg:px-10 pt-20 pb-20 lg:pt-32 lg:pb-28">
+      <div className="relative max-w-7xl mx-auto px-2 lg:px-4 pt-20 pb-20 lg:pt-33 lg:pb-28">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-20 lg:gap-33 items-center">
          
           <div className="lg:col-span-4 space-y-10">

@@ -1,92 +1,128 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 
-const Navbar = () => {
+const Navbar: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 10);
-    window.addEventListener("scroll", onScroll);
-    return () => window.removeEventListener("scroll", onScroll);
+    const handleScroll = () => setScrolled(window.scrollY > 40);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMobileOpen(false);
+      }
+    };
+    if (mobileOpen) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [mobileOpen]);
+
+  useEffect(() => {
+    document.body.style.overflow = mobileOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [mobileOpen]);
+
+  const navLinks = [
+    { label: "Features", to: "/features" },
+    { label: "Pricing", to: "/pricing" },
+    { label: "Community", to: "/community" },
+    { label: "Blog", to: "/blog" },
+  ];
+
   return (
-    <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled ? "bg-white/90 backdrop-blur-md shadow-sm" : "bg-transparent"
-      }`}
+    <div
+      className="sticky top-0 z-50 w-full flex justify-center"
+      style={{
+        padding: scrolled ? "12px 16px 0" : "0",
+        transition: "padding 0.5s cubic-bezier(0.16, 1, 0.3, 1)",
+      }}
     >
-      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+      <nav
+        ref={menuRef}
+        className={`w-full border transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+          scrolled
+            ? "bg-white/85 backdrop-blur-md border-stone-200 shadow-[0_2px_20px_rgba(0,0,0,0.06)]"
+            : "bg-white border-b border-stone-200/60 border-x-0 border-t-0"
+        }`}
+        style={{
+          maxWidth: scrolled ? "56rem" : "100%",
+          borderRadius: scrolled ? "16px" : "0px",
+          transition: "max-width 0.5s cubic-bezier(0.16, 1, 0.3, 1), border-radius 0.5s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s, box-shadow 0.3s, border-color 0.3s",
+        }}
+      >
+        <div className="px-5 lg:px-6">
+          <div className="flex items-center justify-between h-14">
 
-        
-        <Link to="/" className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-stone-900 flex items-center justify-center">
-            <span className="text-white text-xs font-bold">A</span>
-          </div>
-          <span className="font-semibold text-stone-900 text-[15px]">Arcio</span>
-        </Link>
+            <Link to="/" className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-md bg-stone-900 flex items-center justify-center">
+                <span className="text-white text-[10px] font-bold">P</span>
+              </div>
+              <span className="text-[14px] font-semibold text-stone-900 tracking-tight">
+                PortfolioIQ
+              </span>
+            </Link>
 
-               <nav className="hidden md:flex items-center gap-1 bg-white border border-stone-200 rounded-full px-2 py-1.5 shadow-sm">
-          {["Features", "Pricing", "Community", "Blog"].map((item) => (
-            <Link
-              key={item}
-              to={`/${item.toLowerCase()}`}
-              className="px-4 py-1.5 text-[13px] font-medium text-stone-600 hover:text-stone-900 hover:bg-stone-50 rounded-full transition-all duration-200"
+            <div className="hidden md:flex items-center gap-1 bg-stone-100/60 rounded-lg px-1 py-0.5">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.label}
+                  to={link.to}
+                  className="text-[12px] font-medium text-stone-500 hover:text-stone-900 hover:bg-white px-3 py-1.5 rounded-md transition-all duration-150"
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+
+            <div className="hidden md:flex items-center gap-3">
+              <Link
+                to="/login"
+                className="text-[12px] font-medium text-stone-500 hover:text-stone-900 transition-colors duration-150"
+              >
+                Log in
+              </Link>
+              <Link
+                to="/get-started"
+                className="text-[12px] font-medium text-white bg-stone-900 hover:bg-stone-800 px-3.5 py-1.5 rounded-lg transition-colors duration-150"
+              >
+                Get Started
+              </Link>
+            </div>
+
+            <button
+              onClick={() => setMobileOpen(!mobileOpen)}
+              className="md:hidden w-8 h-8 flex items-center justify-center rounded-md text-stone-600 hover:bg-stone-100 transition-colors duration-150"
+              aria-label="Toggle menu"
             >
-              {item}
-            </Link>
-          ))}
-        </nav>
-
-        <div className="hidden md:flex items-center gap-3">
-          <Link
-            to="/login"
-            className="text-[13px] font-medium text-stone-600 hover:text-stone-900 transition-colors"
-          >
-            Log in
-          </Link>
-          <Link
-            to="/signup"
-            className="px-4 py-2 text-[13px] font-semibold text-white bg-stone-900 rounded-full hover:bg-stone-700 transition-all duration-200 active:scale-95"
-          >
-            Get Started
-          </Link>
-        </div>
-
-        
-        <button
-          className="md:hidden p-2 rounded-lg hover:bg-stone-100 transition-colors"
-          onClick={() => setMenuOpen(!menuOpen)}
-        >
-          <div className="w-5 h-0.5 bg-stone-900 mb-1 transition-all" />
-          <div className="w-5 h-0.5 bg-stone-900 mb-1" />
-          <div className="w-5 h-0.5 bg-stone-900" />
-        </button>
-      </div>
-
-    
-      {menuOpen && (
-        <div className="md:hidden bg-white border-t border-stone-100 px-6 py-4 space-y-3">
-          {["Features", "Pricing", "Community", "Blog"].map((item) => (
-            <Link
-              key={item}
-              to={`/${item.toLowerCase()}`}
-              className="block text-[14px] font-medium text-stone-600 hover:text-stone-900 py-1"
-              onClick={() => setMenuOpen(false)}
-            >
-              {item}
-            </Link>
-          ))}
-          <div className="pt-2 flex flex-col gap-2 border-t border-stone-100">
-            <Link to="/login" className="text-[14px] font-medium text-stone-600">Log in</Link>
-            <Link to="/signup" className="px-4 py-2 text-[13px] font-semibold text-white bg-stone-900 rounded-full text-center">
-              Get Started
-            </Link>
+              <div className="flex flex-col items-center justify-center gap-[4px]">
+                <span className={`block h-[1.5px] w-3.5 bg-current rounded-full transition-all duration-200 ${mobileOpen ? "rotate-45 translate-y-[5.5px]" : ""}`} />
+                <span className={`block h-[1.5px] w-3.5 bg-current rounded-full transition-all duration-200 ${mobileOpen ? "opacity-0" : ""}`} />
+                <span className={`block h-[1.5px] w-3.5 bg-current rounded-full transition-all duration-200 ${mobileOpen ? "-rotate-45 -translate-y-[5.5px]" : ""}`} />
+              </div>
+            </button>
           </div>
         </div>
-      )}
-    </header>
+
+        <div className={`md:hidden overflow-hidden transition-all duration-250 ease-in-out ${mobileOpen ? "max-h-[300px] opacity-100" : "max-h-0 opacity-0"}`}>
+          <div className="px-4 pb-4 pt-1 space-y-0.5 border-t border-stone-100">
+            {navLinks.map((link) => (
+              <Link key={link.label} to={link.to} onClick={() => setMobileOpen(false)} className="block px-3 py-2 rounded-md text-[13px] font-medium text-stone-600 hover:text-stone-900 hover:bg-stone-50 transition-colors duration-150">
+                {link.label}
+              </Link>
+            ))}
+            <div className="pt-2 mt-1 border-t border-stone-100 space-y-1">
+              <Link to="/login" onClick={() => setMobileOpen(false)} className="block px-3 py-2 rounded-md text-[13px] font-medium text-stone-600">Log in</Link>
+              <Link to="/get-started" onClick={() => setMobileOpen(false)} className="block px-3 py-2 rounded-md text-[13px] font-medium text-center text-white bg-stone-900">Get Started</Link>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </div>
   );
 };
 
