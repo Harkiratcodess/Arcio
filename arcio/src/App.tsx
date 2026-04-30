@@ -4,6 +4,8 @@ import './App.css'
 import Navbar from './components/navbar'
 import PortfolioIQHero from './components/Hero'
 import TrustBar from './components/Trustbar'
+import Features from './components/features'
+
 
 
 function App() {
@@ -12,6 +14,8 @@ return(
     <Navbar/>
    <PortfolioIQHero/>
    <TrustBar/>
+   <Features/>
+   
   </div>
 )
 }
