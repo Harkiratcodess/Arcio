@@ -29,8 +29,8 @@ const Navbar: React.FC = () => {
 
   const navLinks = [
     { label: "Features", to: "/features" },
-    { label: "Pricing", to: "/pricing" },
-    { label: "Community", to: "/community" },
+    { label: "How it Works", to: "/pricing" },
+    { label: "Changelog", to: "/community" },
     { label: "Blog", to: "/blog" },
   ];
 
@@ -60,10 +60,10 @@ const Navbar: React.FC = () => {
 
             <Link to="/" className="flex items-center gap-2">
               <div className="w-6 h-6 rounded-md bg-stone-900 flex items-center justify-center">
-                <span className="text-white text-[10px] font-bold">P</span>
+                <span className="text-white text-[10px] font-bold">A</span>
               </div>
               <span className="text-[14px] font-semibold text-stone-900 tracking-tight">
-                PortfolioIQ
+                Arcio
               </span>
             </Link>
 

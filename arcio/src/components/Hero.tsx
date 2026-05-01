@@ -46,7 +46,7 @@ const PortfolioIQHero: React.FC = () => {
 
             <div className="flex flex-col sm:flex-row items-start gap-3">
               <button className="inline-flex items-center gap-2.5 px-6 py-3.5 text-[15px] font-semibold text-white bg-stone-900 rounded-lg hover:bg-stone-800 active:scale-[0.98] transition-all duration-150 shadow-sm">
-                Analyze My GitHub
+                Audit My Profile
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 16 16"

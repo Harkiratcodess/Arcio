@@ -64,10 +64,9 @@ const Footer = () => {
 
         </div>
 
-        {/* Bottom bar */}
-        <div className="mt-16 pt-8 border-t border-stone-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="mt-16 pt-8 border-t border-stone-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <p className="text-[12px] text-stone-400">
-            © 2026 Folio.IQ — Built by a developer, for developers.
+            © 2026 Arcio — Built by a developer, for developers.
           </p>
           <p className="text-[12px] text-stone-400 font-mono">
             v0.1 · made with care
