@@ -1,5 +1,8 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useSignUp } from "@clerk/clerk-react";
+
+// --- Icons ---
 
 const GitHubIcon = () => (
   <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
@@ -37,6 +40,8 @@ const CheckIcon = () => (
   </svg>
 );
 
+// --- Strength Meter Logic ---
+
 const getPasswordStrength = (pwd: string) => {
   if (!pwd) return { score: 0, label: "", color: "" };
   let score = 0;
@@ -52,26 +57,21 @@ const getPasswordStrength = (pwd: string) => {
     { label: "Good", color: "bg-teal-400" },
     { label: "Strong", color: "bg-teal-600" },
   ];
-
   return { score, ...map[score] };
 };
 
+// --- Main Component ---
+
 export default function Register() {
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    password: "",
-  });
+  const { signUp, isLoaded } = useSignUp();
+  const navigate = useNavigate();
+
+  const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [focused, setFocused] = useState<string | null>(null);
   const [agreed, setAgreed] = useState(false);
-
-  const perks = [
-    "Unlimited repo analyses during beta",
-    "Weekly market intelligence reports",
-    "No credit card, ever",
-  ];
 
   const strength = getPasswordStrength(form.password);
 
@@ -79,11 +79,47 @@ export default function Register() {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!agreed) return;
+    if (!isLoaded || !agreed) return;
     setLoading(true);
-    setTimeout(() => setLoading(false), 1500);
+    setError("");
+
+    try {
+      // Split name for Clerk
+      const firstName = form.name.split(" ")[0];
+      const lastName = form.name.split(" ").slice(1).join(" ");
+
+      await signUp.create({
+        emailAddress: form.email,
+        password: form.password,
+        firstName,
+        lastName,
+      });
+
+      // Send verification email
+      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+      
+      // Redirect to verification page
+      navigate("/verify-email");
+    } catch (err: any) {
+      setError(err.errors?.[0]?.message || "Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOAuth = async (strategy: "oauth_github" | "oauth_google") => {
+    if (!isLoaded) return;
+    try {
+      await signUp.authenticateWithRedirect({
+        strategy,
+        redirectUrl: "/sso-callback",
+        redirectUrlComplete: "/ideas",
+      });
+    } catch (err: any) {
+      setError(err.errors?.[0]?.message || "Authentication failed");
+    }
   };
 
   return (
@@ -92,9 +128,9 @@ export default function Register() {
       <div className="pointer-events-none absolute -bottom-24 right-0 h-[440px] w-[440px] rounded-full bg-stone-900/10 blur-3xl" />
       <div className="pointer-events-none absolute inset-0 opacity-[0.04] [background-image:linear-gradient(to_right,#1c1917_1px,transparent_1px),linear-gradient(to_bottom,#1c1917_1px,transparent_1px)] [background-size:68px_68px]" />
 
+      {/* Left panel - Match Login Styling */}
       <section className="hidden lg:flex w-[56%] bg-stone-950 relative">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_22%,rgba(45,212,191,0.2),transparent_42%),radial-gradient(circle_at_80%_85%,rgba(45,212,191,0.14),transparent_42%)]" />
-
         <div className="relative z-10 w-full px-14 py-12 flex flex-col justify-between">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center">
@@ -102,68 +138,40 @@ export default function Register() {
             </div>
             <span className="text-white font-semibold text-[15px] tracking-tight">Arcio</span>
           </div>
-
           <div className="max-w-xl">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-teal-500/30 bg-teal-500/10">
-              <div className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse" />
-              <span className="text-teal-400 text-[11px] font-semibold tracking-wider uppercase">
-                Early access · Free
-              </span>
+              <div className="w-1.5 h-1.5 rounded-full bg-teal-300 animate-pulse" />
+              <span className="text-teal-300 text-[11px] font-semibold tracking-wider uppercase">Early Access · Free</span>
             </div>
-
             <h1 className="mt-8 text-6xl leading-[0.94] font-bold tracking-tight text-white">
-              Make your next
-              <br />
+              Make your next<br />
               commit <span className="font-serif italic font-normal text-teal-400">count.</span>
             </h1>
-
             <p className="mt-6 text-stone-300 text-[15px] leading-relaxed max-w-md">
-              Join developers who are building smarter, standing out faster, and getting noticed by the right companies.
+              Join developers building smarter portfolios. Scan your repos, get AI insights, and stand out in the market.
             </p>
-
-            <div className="mt-9 space-y-3 max-w-md">
-              {perks.map((perk) => (
-                <div key={perk} className="flex items-center gap-3">
-                  <div className="w-5 h-5 rounded-full bg-teal-500/20 border border-teal-500/30 flex items-center justify-center flex-shrink-0 text-teal-400">
-                    <CheckIcon />
-                  </div>
-                  <span className="text-stone-300 text-[13px]">{perk}</span>
+            
+            <div className="mt-10 flex gap-3 max-w-[560px]">
+              {[
+                { label: "Free analyzed repos", value: "Unlimited" },
+                { label: "Beta status", value: "Active" },
+                { label: "Credit card", value: "Never" },
+              ].map((s) => (
+                <div key={s.label} className="flex-1 rounded-xl border border-stone-800 bg-stone-900/60 px-4 py-3 transition-all duration-300 hover:-translate-y-1 hover:border-teal-500/30 hover:bg-stone-900">
+                  <p className="text-white font-bold font-mono text-lg">{s.value}</p>
+                  <p className="text-stone-500 text-[10px] mt-0.5 leading-tight">{s.label}</p>
                 </div>
               ))}
             </div>
-
-            <div className="mt-10 rounded-xl bg-stone-900 border border-stone-800 p-4 font-mono text-[11px]">
-              <div className="flex gap-1.5 mb-3">
-                <div className="w-2 h-2 rounded-full bg-red-500/50" />
-                <div className="w-2 h-2 rounded-full bg-yellow-500/50" />
-                <div className="w-2 h-2 rounded-full bg-green-500/50" />
-              </div>
-              <div className="space-y-1.5 text-stone-400">
-                <div>
-                  <span className="text-stone-600">$ </span>
-                  <span className="text-teal-400">arcio</span>
-                  <span className="text-stone-300"> analyze github.com/you/project</span>
-                </div>
-                <div className="text-stone-500 pl-2">Scanning repository...</div>
-                <div className="pl-2">
-                  <span className="text-teal-400">✓</span>
-                  <span className="text-stone-300"> Score: </span>
-                  <span className="text-teal-300 font-bold">87/100</span>
-                </div>
-                <div className="pl-2">
-                  <span className="text-amber-400">⚠</span>
-                  <span className="text-stone-400"> 2 improvements found</span>
-                </div>
-              </div>
-            </div>
           </div>
-
           <p className="text-stone-500 text-[11px]">© 2026 Arcio · Built by one developer</p>
         </div>
       </section>
 
+      {/* Right panel — Form */}
       <section className="w-full lg:w-[44%] flex items-center justify-center px-6 sm:px-12 lg:px-14 py-12">
         <div className="w-full max-w-[380px]">
+          {/* Mobile Logo */}
           <div className="lg:hidden flex items-center gap-2.5 mb-10">
             <div className="w-7 h-7 rounded-md bg-stone-950 flex items-center justify-center">
               <span className="text-white font-bold text-xs">A</span>
@@ -172,39 +180,47 @@ export default function Register() {
           </div>
 
           <div className="mb-8">
-            <h2 className="text-3xl font-bold text-stone-900 tracking-tight">Create your account</h2>
-            <p className="text-stone-500 text-[14px] mt-1.5">Free during beta. No card required.</p>
+            <h2 className="text-3xl font-bold text-stone-900 tracking-tight">Create account</h2>
+            <p className="text-stone-500 text-[14px] mt-1.5">Free during beta. No credit card required.</p>
           </div>
 
+          {error && (
+            <div className="mb-4 px-4 py-3 rounded-xl bg-red-50 border border-red-100 text-red-600 text-[13px]">
+              {error}
+            </div>
+          )}
+
+          {/* OAuth buttons */}
           <div className="space-y-2.5 mb-6">
-            <button className="group w-full flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 hover:border-stone-300 transition-all duration-200 text-[13.5px] font-medium text-stone-700 hover:-translate-y-0.5 hover:shadow active:scale-[0.98]">
-              <span className="transition-transform duration-200 group-hover:scale-110">
-                <GitHubIcon />
-              </span>
+            <button
+              type="button"
+              onClick={() => handleOAuth("oauth_github")}
+              className="group w-full flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 hover:border-stone-300 transition-all duration-200 text-[13.5px] font-medium text-stone-700 hover:-translate-y-0.5 hover:shadow active:scale-[0.98]"
+            >
+              <span className="transition-transform duration-200 group-hover:scale-110"><GitHubIcon /></span>
               Continue with GitHub
             </button>
-            <button className="group w-full flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 hover:border-stone-300 transition-all duration-200 text-[13.5px] font-medium text-stone-700 hover:-translate-y-0.5 hover:shadow active:scale-[0.98]">
-              <span className="transition-transform duration-200 group-hover:scale-110">
-                <GoogleIcon />
-              </span>
+            <button
+              type="button"
+              onClick={() => handleOAuth("oauth_google")}
+              className="group w-full flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 hover:border-stone-300 transition-all duration-200 text-[13.5px] font-medium text-stone-700 hover:-translate-y-0.5 hover:shadow active:scale-[0.98]"
+            >
+              <span className="transition-transform duration-200 group-hover:scale-110"><GoogleIcon /></span>
               Continue with Google
             </button>
           </div>
 
           <div className="flex items-center gap-3 mb-6">
             <div className="flex-1 h-px bg-stone-200" />
-            <span className="text-[11px] text-stone-400 font-medium">or sign up with email</span>
+            <span className="text-[11px] text-stone-400 font-medium">or register with email</span>
             <div className="flex-1 h-px bg-stone-200" />
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Full Name */}
             <div>
               <label className="block text-[12px] font-semibold text-stone-600 mb-1.5 tracking-wide">Full name</label>
-              <div
-                className={`rounded-xl border transition-all duration-200 ${
-                  focused === "name" ? "border-stone-400 shadow-[0_0_0_4px_rgba(120,113,108,0.1)]" : "border-stone-200 hover:border-stone-300"
-                }`}
-              >
+              <div className={`rounded-xl border bg-white transition-all duration-200 ${focused === "name" ? "border-stone-400 shadow-[0_0_0_4px_rgba(120,113,108,0.1)]" : "border-stone-200 hover:border-stone-300"}`}>
                 <input
                   type="text"
                   name="name"
@@ -219,13 +235,10 @@ export default function Register() {
               </div>
             </div>
 
+            {/* Email */}
             <div>
               <label className="block text-[12px] font-semibold text-stone-600 mb-1.5 tracking-wide">Email</label>
-              <div
-                className={`rounded-xl border transition-all duration-200 ${
-                  focused === "email" ? "border-stone-400 shadow-[0_0_0_4px_rgba(120,113,108,0.1)]" : "border-stone-200 hover:border-stone-300"
-                }`}
-              >
+              <div className={`rounded-xl border bg-white transition-all duration-200 ${focused === "email" ? "border-stone-400 shadow-[0_0_0_4px_rgba(120,113,108,0.1)]" : "border-stone-200 hover:border-stone-300"}`}>
                 <input
                   type="email"
                   name="email"
@@ -240,13 +253,10 @@ export default function Register() {
               </div>
             </div>
 
+            {/* Password */}
             <div>
               <label className="block text-[12px] font-semibold text-stone-600 mb-1.5 tracking-wide">Password</label>
-              <div
-                className={`relative rounded-xl border transition-all duration-200 ${
-                  focused === "password" ? "border-stone-400 shadow-[0_0_0_4px_rgba(120,113,108,0.1)]" : "border-stone-200 hover:border-stone-300"
-                }`}
-              >
+              <div className={`relative rounded-xl border bg-white transition-all duration-200 ${focused === "password" ? "border-stone-400 shadow-[0_0_0_4px_rgba(120,113,108,0.1)]" : "border-stone-200 hover:border-stone-300"}`}>
                 <input
                   type={showPassword ? "text" : "password"}
                   name="password"
@@ -258,15 +268,12 @@ export default function Register() {
                   className="w-full px-4 py-2.5 pr-10 text-[14px] text-stone-800 placeholder-stone-300 bg-transparent rounded-xl outline-none"
                   required
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((s) => !s)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 hover:scale-110 transition-all duration-200"
-                >
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 transition-all duration-200">
                   <EyeIcon open={showPassword} />
                 </button>
               </div>
 
+              {/* Password Strength Meter */}
               {form.password && (
                 <div className="mt-2">
                   <div className="flex gap-1 mb-1">
@@ -279,6 +286,7 @@ export default function Register() {
               )}
             </div>
 
+            {/* Terms Agreement */}
             <div className="flex items-start gap-3 pt-1">
               <button
                 type="button"
@@ -292,7 +300,7 @@ export default function Register() {
               <p className="text-[12px] text-stone-400 leading-relaxed">
                 I agree to the{" "}
                 <Link to="/terms" className="text-stone-600 underline underline-offset-2 hover:text-teal-600 transition-colors">
-                  Terms of Service
+                  Terms
                 </Link>{" "}
                 and{" "}
                 <Link to="/privacy" className="text-stone-600 underline underline-offset-2 hover:text-teal-600 transition-colors">
@@ -303,8 +311,8 @@ export default function Register() {
 
             <button
               type="submit"
-              disabled={loading || !agreed}
-              className="group w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-stone-900 text-white text-[14px] font-semibold hover:bg-stone-800 hover:-translate-y-0.5 hover:shadow-[0_10px_24px_rgba(28,25,23,0.28)] active:scale-[0.98] active:translate-y-0 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed mt-1"
+              disabled={loading || !isLoaded || !agreed}
+              className="group w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-stone-900 text-white text-[14px] font-semibold hover:bg-stone-800 hover:-translate-y-0.5 hover:shadow-[0_10px_24px_rgba(28,25,23,0.28)] active:scale-[0.98] active:translate-y-0 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed mt-2"
             >
               {loading ? (
                 <>
@@ -327,10 +335,7 @@ export default function Register() {
 
           <p className="text-center text-[13px] text-stone-400 mt-6">
             Already have an account?{" "}
-            <Link
-              to="/login"
-              className="text-stone-700 font-semibold hover:text-teal-600 transition-colors underline underline-offset-4 decoration-stone-300 hover:decoration-teal-400"
-            >
+            <Link to="/login" className="text-stone-700 font-semibold hover:text-teal-600 transition-colors underline underline-offset-4 decoration-stone-300 hover:decoration-teal-400">
               Sign in
             </Link>
           </p>

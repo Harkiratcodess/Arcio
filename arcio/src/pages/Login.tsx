@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useSignIn } from "@clerk/clerk-react";
 
 const GitHubIcon = () => (
   <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
@@ -32,28 +33,76 @@ const EyeIcon = ({ open }: { open: boolean }) => (
 );
 
 export default function Login() {
+  const { signIn, isLoaded } = useSignIn()
+  const navigate = useNavigate()
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("")
   const [focused, setFocused] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setTimeout(() => setLoading(false), 1400);
-  };
+  // Email/password login
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!isLoaded) return
+    setLoading(true)
+    setError("")
+
+    try {
+      const result = await signIn.create({
+        identifier: email,
+        password,
+      })
+
+      if (result.status === "complete") {
+        navigate("/ideas")
+      }
+    } catch (err: any) {
+      setError(err.errors?.[0]?.message || "Invalid email or password")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // GitHub OAuth
+  const handleGitHub = async () => {
+    if (!isLoaded) return
+    try {
+      await signIn.authenticateWithRedirect({
+        strategy: "oauth_github",
+        redirectUrl: "/sso-callback",
+        redirectUrlComplete: "/ideas",
+      })
+    } catch (err: any) {
+      setError(err.errors?.[0]?.message || "GitHub login failed")
+    }
+  }
+
+  // Google OAuth
+  const handleGoogle = async () => {
+    if (!isLoaded) return
+    try {
+      await signIn.authenticateWithRedirect({
+        strategy: "oauth_google",
+        redirectUrl: "/sso-callback",
+        redirectUrlComplete: "/ideas",
+      })
+    } catch (err: any) {
+      setError(err.errors?.[0]?.message || "Google login failed")
+    }
+  }
 
   return (
     <div className="relative min-h-screen bg-[#fafaf8] flex overflow-hidden">
- 
       <div className="pointer-events-none absolute -top-40 -left-32 h-[520px] w-[520px] rounded-full bg-teal-500/10 blur-3xl animate-pulse" />
       <div className="pointer-events-none absolute -bottom-24 right-0 h-[440px] w-[440px] rounded-full bg-stone-900/10 blur-3xl" />
       <div className="pointer-events-none absolute inset-0 opacity-[0.04] [background-image:linear-gradient(to_right,#1c1917_1px,transparent_1px),linear-gradient(to_bottom,#1c1917_1px,transparent_1px)] [background-size:68px_68px]" />
 
-            <section className="hidden lg:flex w-[56%] bg-stone-950 relative">
+      {/* Left panel */}
+      <section className="hidden lg:flex w-[56%] bg-stone-950 relative">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_22%,rgba(45,212,191,0.2),transparent_42%),radial-gradient(circle_at_80%_85%,rgba(45,212,191,0.14),transparent_42%)]" />
-
         <div className="relative z-10 w-full px-14 py-12 flex flex-col justify-between">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center">
@@ -61,47 +110,36 @@ export default function Login() {
             </div>
             <span className="text-white font-semibold text-[15px] tracking-tight">Arcio</span>
           </div>
-
           <div className="max-w-xl">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-teal-500/30 bg-teal-500/10">
               <div className="w-1.5 h-1.5 rounded-full bg-teal-300 animate-pulse" />
-              <span className="text-teal-300 text-[11px] font-semibold tracking-wider uppercase">
-                Beta · Free access
-              </span>
+              <span className="text-teal-300 text-[11px] font-semibold tracking-wider uppercase">Beta · Free access</span>
             </div>
-
             <h1 className="mt-8 text-6xl leading-[0.94] font-bold tracking-tight text-white">
-              Your portfolio,
-              <br />
+              Your portfolio,<br />
               <span className="font-serif italic font-normal text-teal-400">quantified.</span>
             </h1>
-
             <p className="mt-6 text-stone-300 text-[15px] leading-relaxed max-w-md">
               Analyze your GitHub repos, get AI-powered project ideas, and see exactly where you stand in the market.
             </p>
-
             <div className="mt-10 flex gap-3 max-w-[560px]">
               {[
                 { label: "Avg score boost", value: "+24pts" },
                 { label: "Setup time", value: "~30s" },
                 { label: "Cost", value: "$0" },
               ].map((s) => (
-                <div
-                  key={s.label}
-                  className="flex-1 rounded-xl border border-stone-800 bg-stone-900/60 px-4 py-3 transition-all duration-300 hover:-translate-y-1 hover:border-teal-500/30 hover:bg-stone-900"
-                >
+                <div key={s.label} className="flex-1 rounded-xl border border-stone-800 bg-stone-900/60 px-4 py-3 transition-all duration-300 hover:-translate-y-1 hover:border-teal-500/30 hover:bg-stone-900">
                   <p className="text-white font-bold font-mono text-lg">{s.value}</p>
                   <p className="text-stone-500 text-[10px] mt-0.5 leading-tight">{s.label}</p>
                 </div>
               ))}
             </div>
           </div>
-
           <p className="text-stone-500 text-[11px]">© 2026 Arcio · Built by one developer</p>
         </div>
       </section>
 
-   
+      {/* Right panel — form */}
       <section className="w-full lg:w-[44%] flex items-center justify-center px-6 sm:px-12 lg:px-14 py-12">
         <div className="w-full max-w-[380px]">
           <div className="lg:hidden flex items-center gap-2.5 mb-10">
@@ -116,12 +154,26 @@ export default function Login() {
             <p className="text-stone-500 text-[14px] mt-1.5">Sign in to your account to continue</p>
           </div>
 
+          {/* Error message */}
+          {error && (
+            <div className="mb-4 px-4 py-3 rounded-xl bg-red-50 border border-red-100 text-red-600 text-[13px]">
+              {error}
+            </div>
+          )}
+
+          {/* OAuth buttons */}
           <div className="space-y-2.5 mb-6">
-            <button className="group w-full flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 hover:border-stone-300 transition-all duration-200 text-[13.5px] font-medium text-stone-700 hover:-translate-y-0.5 hover:shadow active:scale-[0.98]">
+            <button
+              onClick={handleGitHub}
+              className="group w-full flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 hover:border-stone-300 transition-all duration-200 text-[13.5px] font-medium text-stone-700 hover:-translate-y-0.5 hover:shadow active:scale-[0.98]"
+            >
               <span className="transition-transform duration-200 group-hover:scale-110"><GitHubIcon /></span>
               Continue with GitHub
             </button>
-            <button className="group w-full flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 hover:border-stone-300 transition-all duration-200 text-[13.5px] font-medium text-stone-700 hover:-translate-y-0.5 hover:shadow active:scale-[0.98]">
+            <button
+              onClick={handleGoogle}
+              className="group w-full flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 hover:border-stone-300 transition-all duration-200 text-[13.5px] font-medium text-stone-700 hover:-translate-y-0.5 hover:shadow active:scale-[0.98]"
+            >
               <span className="transition-transform duration-200 group-hover:scale-110"><GoogleIcon /></span>
               Continue with Google
             </button>
@@ -136,13 +188,7 @@ export default function Login() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-[12px] font-semibold text-stone-600 mb-1.5 tracking-wide">Email</label>
-              <div
-                className={`relative rounded-xl border bg-white transition-all duration-200 ${
-                  focused === "email"
-                    ? "border-stone-400 shadow-[0_0_0_4px_rgba(120,113,108,0.1)]"
-                    : "border-stone-200 hover:border-stone-300"
-                }`}
-              >
+              <div className={`relative rounded-xl border bg-white transition-all duration-200 ${focused === "email" ? "border-stone-400 shadow-[0_0_0_4px_rgba(120,113,108,0.1)]" : "border-stone-200 hover:border-stone-300"}`}>
                 <input
                   type="email"
                   value={email}
@@ -163,13 +209,7 @@ export default function Login() {
                   Forgot password?
                 </Link>
               </div>
-              <div
-                className={`relative rounded-xl border bg-white transition-all duration-200 ${
-                  focused === "password"
-                    ? "border-stone-400 shadow-[0_0_0_4px_rgba(120,113,108,0.1)]"
-                    : "border-stone-200 hover:border-stone-300"
-                }`}
-              >
+              <div className={`relative rounded-xl border bg-white transition-all duration-200 ${focused === "password" ? "border-stone-400 shadow-[0_0_0_4px_rgba(120,113,108,0.1)]" : "border-stone-200 hover:border-stone-300"}`}>
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
@@ -180,11 +220,7 @@ export default function Login() {
                   className="w-full px-4 py-2.5 pr-10 text-[14px] text-stone-800 placeholder-stone-300 bg-transparent rounded-xl outline-none"
                   required
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 hover:scale-110 transition-all duration-200"
-                >
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 transition-all duration-200">
                   <EyeIcon open={showPassword} />
                 </button>
               </div>
@@ -192,7 +228,7 @@ export default function Login() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !isLoaded}
               className="group w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-stone-900 text-white text-[14px] font-semibold hover:bg-stone-800 hover:-translate-y-0.5 hover:shadow-[0_10px_24px_rgba(28,25,23,0.28)] active:scale-[0.98] active:translate-y-0 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed mt-2"
             >
               {loading ? (
@@ -207,11 +243,7 @@ export default function Login() {
                 <>
                   Sign in
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-0.5">
-                    <path
-                      fillRule="evenodd"
-                      d="M2 8a.75.75 0 01.75-.75h8.69L8.22 4.03a.75.75 0 011.06-1.06l4.5 4.5a.75.75 0 010 1.06l-4.5 4.5a.75.75 0 01-1.06-1.06l3.22-3.22H2.75A.75.75 0 012 8z"
-                      clipRule="evenodd"
-                    />
+                    <path fillRule="evenodd" d="M2 8a.75.75 0 01.75-.75h8.69L8.22 4.03a.75.75 0 011.06-1.06l4.5 4.5a.75.75 0 010 1.06l-4.5 4.5a.75.75 0 01-1.06-1.06l3.22-3.22H2.75A.75.75 0 012 8z" clipRule="evenodd" />
                   </svg>
                 </>
               )}
@@ -219,11 +251,8 @@ export default function Login() {
           </form>
 
           <p className="text-center text-[13px] text-stone-400 mt-6">
-            Don&apos;t have an account?{" "}
-            <Link
-              to="/signup"
-              className="text-stone-700 font-semibold hover:text-teal-600 transition-colors underline underline-offset-4 decoration-stone-300 hover:decoration-teal-400"
-            >
+            Don't have an account?{" "}
+            <Link to="/signup" className="text-stone-700 font-semibold hover:text-teal-600 transition-colors underline underline-offset-4 decoration-stone-300 hover:decoration-teal-400">
               Create one free
             </Link>
           </p>
