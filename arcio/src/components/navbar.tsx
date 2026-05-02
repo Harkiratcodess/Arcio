@@ -28,8 +28,8 @@ const Navbar: React.FC = () => {
   }, [mobileOpen]);
 
   const navLinks = [
-    { label: "Features", to: "/features" },
-    { label: "How it Works", to: "/pricing" },
+    { label: "Features", to: "#features" },
+    { label: "HowItWorks", to: "#how" },
     { label: "Changelog", to: "/community" },
     { label: "Blog", to: "/blog" },
   ];
@@ -68,15 +68,11 @@ const Navbar: React.FC = () => {
             </Link>
 
             <div className="hidden md:flex items-center gap-1 bg-stone-100/60 rounded-lg px-1 py-0.5">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.label}
-                  to={link.to}
-                  className="text-[12px] font-medium text-stone-500 hover:text-stone-900 hover:bg-white px-3 py-1.5 rounded-md transition-all duration-150"
-                >
-                  {link.label}
-                </Link>
-              ))}
+             {navLinks.map((link) => (
+  <a key={link.label} href={link.to} className="text-[12px] font-medium text-stone-500 hover:text-stone-900 hover:bg-white px-3 py-1.5 rounded-md transition-all duration-150">
+    {link.label}
+  </a>
+))}
             </div>
 
             <div className="hidden md:flex items-center gap-3">
@@ -87,7 +83,7 @@ const Navbar: React.FC = () => {
                 Log in
               </Link>
               <Link
-                to="/get-started"
+                to="/signup"
                 className="text-[12px] font-medium text-white bg-stone-900 hover:bg-stone-800 px-3.5 py-1.5 rounded-lg transition-colors duration-150"
               >
                 Get Started
@@ -111,10 +107,10 @@ const Navbar: React.FC = () => {
         <div className={`md:hidden overflow-hidden transition-all duration-250 ease-in-out ${mobileOpen ? "max-h-[300px] opacity-100" : "max-h-0 opacity-0"}`}>
           <div className="px-4 pb-4 pt-1 space-y-0.5 border-t border-stone-100">
             {navLinks.map((link) => (
-              <Link key={link.label} to={link.to} onClick={() => setMobileOpen(false)} className="block px-3 py-2 rounded-md text-[13px] font-medium text-stone-600 hover:text-stone-900 hover:bg-stone-50 transition-colors duration-150">
-                {link.label}
-              </Link>
-            ))}
+  <a key={link.label} href={link.to} className="text-[12px] font-medium text-stone-500 hover:text-stone-900 hover:bg-white px-3 py-1.5 rounded-md transition-all duration-150">
+    {link.label}
+  </a>
+))}
             <div className="pt-2 mt-1 border-t border-stone-100 space-y-1">
               <Link to="/login" onClick={() => setMobileOpen(false)} className="block px-3 py-2 rounded-md text-[13px] font-medium text-stone-600">Log in</Link>
               <Link to="/get-started" onClick={() => setMobileOpen(false)} className="block px-3 py-2 rounded-md text-[13px] font-medium text-center text-white bg-stone-900">Get Started</Link>
