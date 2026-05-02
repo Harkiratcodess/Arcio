@@ -38,6 +38,14 @@ app.get('/', (req, res) => {
   })
 })
 
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path}`)
+  next()
+})
+
+// Routes
+app.use('/api/users', require('./src/routes/user.routes'))
+
 // Routes
 app.use('/api/users', require('./src/routes/user.routes'))
 
