@@ -1,4 +1,6 @@
 require('dotenv').config()
+require('./src/config/ai')
+require('./src/config/github')
 const app = require('./app')
 const connectDB = require('./src/config/db')
 const logger = require('./src/utils/logger')

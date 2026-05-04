@@ -1,6 +1,6 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useSignIn } from "@clerk/clerk-react";
+import { useSignIn, useAuth } from "@clerk/clerk-react";
 
 const GitHubIcon = () => (
   <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
@@ -34,7 +34,14 @@ const EyeIcon = ({ open }: { open: boolean }) => (
 
 export default function Login() {
   const { signIn, isLoaded } = useSignIn()
+  const { isSignedIn } = useAuth();
   const navigate = useNavigate()
+
+  React.useEffect(() => {
+    if (isSignedIn) {
+      navigate("/ideas", { replace: true });
+    }
+  }, [isSignedIn, navigate]);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

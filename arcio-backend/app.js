@@ -10,7 +10,6 @@ const app = express()
 
 app.use(helmet())
 
-
 app.use(cors({
   origin: process.env.CLIENT_URL || 'http://localhost:5173',
   credentials: true
@@ -19,7 +18,6 @@ app.use(cors({
 app.use(express.json({ limit: '10kb' }))
 app.use(express.urlencoded({ extended: true }))
 
-
 app.use(morgan('combined', {
   stream: {
     write: (message) => logger.info(message.trim())
@@ -27,7 +25,6 @@ app.use(morgan('combined', {
 }))
 
 app.use('/api', apiLimiter)
-
 
 app.get('/', (req, res) => {
   res.json({ 
@@ -38,16 +35,9 @@ app.get('/', (req, res) => {
   })
 })
 
-app.use((req, res, next) => {
-  console.log(`${req.method} ${req.path}`)
-  next()
-})
-
 // Routes
 app.use('/api/users', require('./src/routes/user.routes'))
-
-// Routes
-app.use('/api/users', require('./src/routes/user.routes'))
+app.use('/api/analyzer', require('./src/routes/analyzer.routes'))
 
 app.use(errorHandler)
 

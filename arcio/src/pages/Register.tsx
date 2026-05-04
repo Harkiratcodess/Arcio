@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useSignUp } from "@clerk/clerk-react";
+import { useSignUp, useSignIn, useAuth } from "@clerk/clerk-react";
 
 // --- Icons ---
 
@@ -64,7 +64,15 @@ const getPasswordStrength = (pwd: string) => {
 
 export default function Register() {
   const { signUp, isLoaded } = useSignUp();
+  const { signIn } = useSignIn();
+  const { isSignedIn } = useAuth();
   const navigate = useNavigate();
+
+  React.useEffect(() => {
+    if (isSignedIn) {
+      navigate("/ideas", { replace: true });
+    }
+  }, [isSignedIn, navigate]);
 
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
@@ -110,15 +118,16 @@ export default function Register() {
   };
 
   const handleOAuth = async (strategy: "oauth_github" | "oauth_google") => {
-    if (!isLoaded) return;
+    if (!isLoaded || !signIn) return;
     try {
-      await signUp.authenticateWithRedirect({
+      // Use signIn for OAuth — it handles both new and existing users
+      await signIn.authenticateWithRedirect({
         strategy,
         redirectUrl: "/sso-callback",
         redirectUrlComplete: "/ideas",
       });
     } catch (err: any) {
-      setError(err.errors?.[0]?.message || "Authentication failed");
+      setError(err.errors?.[0]?.message || "Authentication failed. Try signing in instead.");
     }
   };
 

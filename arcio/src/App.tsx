@@ -177,19 +177,41 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   );
 }
 
+function SSOCallback() {
+  const { handleRedirectCallback } = useClerk();
+  const navigate = useNavigate();
+  const [error, setError] = useState("");
+
+  React.useEffect(() => {
+    handleRedirectCallback({
+      afterSignInUrl: "/ideas",
+      afterSignUpUrl: "/ideas",
+    }).then(() => {
+      navigate("/ideas", { replace: true });
+    }).catch((err: any) => {
+      console.error("SSO callback error:", err);
+      setError("Authentication failed. Redirecting...");
+      setTimeout(() => navigate("/login", { replace: true }), 2000);
+    });
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-[#fafaf8] flex items-center justify-center">
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-10 h-10 border-3 border-stone-200 border-t-stone-900 rounded-full animate-spin" />
+        <p className="text-sm text-stone-500 font-medium">
+          {error || "Completing sign in..."}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   return (
     <Routes>
       {/* Public */}
-      <Route
-        path="/sso-callback"
-        element={
-          <AuthenticateWithRedirectCallback
-            afterSignInUrl="/ideas"
-            afterSignUpUrl="/ideas"
-          />
-        }
-      />
+      <Route path="/sso-callback" element={<SSOCallback />} />
       <Route path="/" element={<Home />} />
       <Route path="/features" element={<Features />} />
       <Route path="/login" element={<Login />} />
@@ -237,3 +259,4 @@ function App() {
 }
 
 export default App;
+

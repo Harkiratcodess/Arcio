@@ -72,6 +72,17 @@ const userSchema = new mongoose.Schema({
     }
   },
 
+  usage: {
+    dailyAnalysisCount: {
+      type: Number,
+      default: 0
+    },
+    lastAnalysisDate: {
+      type: Date,
+      default: null
+    }
+  },
+
 
   plan: {
     type: String,
