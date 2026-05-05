@@ -1,10 +1,9 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Routes, Route, Navigate, useNavigate, Link } from "react-router-dom";
 import {
   SignedIn,
   SignedOut,
   RedirectToSignIn,
-  AuthenticateWithRedirectCallback,
   useSignUp,
   useClerk,
 } from "@clerk/clerk-react";

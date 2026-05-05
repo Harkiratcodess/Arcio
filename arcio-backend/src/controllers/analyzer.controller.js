@@ -87,9 +87,9 @@ const selectFilesForAnalysis = (fileTree, maxFiles) => {
     if (lower.includes('.min.')) return false
     if (lower.endsWith('.lock')) return false
     if (lower.endsWith('.md') && lower.includes('readme')) return false
-    if (lower.endsWith('.svg') || lower.endsWith('.png') || lower.endsWith('.jpg')) return false
-    if (lower.endsWith('.map')) return false
-    return true
+    if (lower.endsWith('.svg') || lower.endsWith('.png') || lower.endsWith('.jpg') || lower.endsWith('.ico') || lower.endsWith('.woff') || lower.endsWith('.woff2') || lower.endsWith('.ttf') || lower.endsWith('.pdf')) return false;
+    if (lower.endsWith('.map') || lower.endsWith('.exe') || lower.endsWith('.bin') || lower.endsWith('.pyc')) return false;
+    return true;
   })
 
   // Score each file by priority
@@ -239,10 +239,18 @@ const analyzeRepo = async (req, res, next) => {
       const contents = await Promise.all(
         batch.map(async (path) => {
           const content = await fetchFileContent(owner, repo, path)
-          return { path, content: content ? content.slice(0, 3000) : null }
+          if (!content) return null
+          
+          // Basic binary check: check for null bytes or excessive non-printable chars
+          const isBinary = /[\x00-\x08\x0E-\x1F]/.test(content.slice(0, 1000))
+          if (isBinary) return null
+
+          // Strip non-printable characters to be safe
+          const cleaned = content.replace(/[\x00-\x08\x0E-\x1F\x7F-\x9F]/g, '')
+          return { path, content: cleaned.slice(0, 2500) }
         })
       )
-      fileContents.push(...contents.filter(f => f.content !== null))
+      fileContents.push(...contents.filter(f => f !== null))
     }
 
     // Build file analysis section for AI prompt
@@ -267,14 +275,15 @@ ${fileAnalysisSection}
 
 Please provide:
 1. A code quality score out of 100
-2. A detailed summary of the repository 
+2. A detailed summary of the repository (1-2 paragraphs)
 3. Exactly 3 specific improvement suggestions
 4. For EACH analyzed file, provide specific feedback with issues found and suggestions
 
-Respond ONLY in this exact JSON format, no other text:
+Respond ONLY in this exact JSON format, no other text.
+**CRITICAL:** The "summary" must be a natural language explanation for a human. Do NOT include file markers, code blocks, or raw data in the summary.
 {
   "codeQualityScore": 75,
-  "summary": "One paragraph honest summary of the repo quality, what's good and what needs work",
+  "summary": "One paragraph honest summary of the repo quality, what's good and what needs work. Focus on high-level architecture and patterns.",
   "improvements": [
     {
       "title": "Clear title of improvement",

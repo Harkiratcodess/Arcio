@@ -39,40 +39,51 @@ const MarketPulse: React.FC = () => {
   ];
 
   return (
-    <div className="flex flex-col h-full font-sans">
-      
-        <div className="flex justify-between items-end mb-10 pb-6 border-b border-stone-200">
+    <div className="flex flex-col h-full animate-fade-in-up">
+      <div className="flex justify-between items-end mb-12 pb-8 border-b border-stone-200/60">
         <div>
-          <h1 className="text-3xl font-serif italic text-stone-900 tracking-tight mb-2">Developer Market</h1>
-          <p className="text-stone-500 text-sm">Real-time intelligence on skill demand and ecosystem trends.</p>
+          <h1 className="text-5xl font-serif italic text-stone-900 tracking-tight mb-3">Market Intelligence</h1>
+          <p className="text-stone-500 text-sm max-w-md">Real-time telemetry on global skill demand, ecosystem health, and compensation benchmarks.</p>
         </div>
-        <button className="flex items-center gap-2 px-3 py-1.5 border border-stone-200 rounded text-xs font-semibold text-stone-600 hover:bg-stone-50 transition-colors">
-          <svg className="w-3.5 h-3.5 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-          Trailing 7 Days
-        </button>
+        <div className="flex gap-3">
+          <button className="flex items-center gap-2 px-4 py-2 bg-white border border-stone-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-stone-600 hover:bg-stone-50 transition-all shadow-sm">
+            <svg className="w-3.5 h-3.5 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+            Trailing 7 Days
+          </button>
+          <button className="flex items-center gap-2 px-4 py-2 bg-stone-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-teal-900 transition-all shadow-lg shadow-stone-900/10">
+            Export Report
+          </button>
+        </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-12">
-        
-          <div className="flex-1">
-          <div className="flex justify-between items-baseline mb-6">
-            <h2 className="text-xl font-serif italic text-stone-900">Skill Demand This Week</h2>
-            <p className="text-[11px] text-stone-500 font-medium uppercase tracking-widest">Aggregated from 140k+ requisitions</p>
+      <div className="flex flex-col xl:flex-row gap-16">
+        <div className="flex-1">
+          <div className="flex justify-between items-baseline mb-8">
+            <h2 className="text-2xl font-serif italic text-stone-900">Ecosystem Demand</h2>
+            <p className="text-[10px] text-stone-400 font-black uppercase tracking-[0.2em]">Aggregated from 140k+ global requisitions</p>
           </div>
 
-          <div className="border-t border-stone-200">
+          <div className="space-y-1">
+            <div className="flex items-center justify-between py-4 px-4 text-[10px] font-black uppercase tracking-widest text-stone-400 border-b border-stone-100">
+              <span className="w-8">Rank</span>
+              <span className="w-1/3">Technology Stack</span>
+              <span className="w-1/6">Open Roles</span>
+              <span className="w-1/6">Avg Base</span>
+              <span className="w-24 text-center">Trend</span>
+              <span className="w-20 text-right">Delta</span>
+            </div>
             {skills.map((skill) => (
               <div 
                 key={skill.rank} 
-                className={`flex items-center justify-between py-4 border-b border-stone-100 ${skill.isActive ? 'bg-[#F2F8F7]' : ''}`}
+                className={`flex items-center justify-between py-6 px-4 rounded-2xl transition-all border border-transparent ${skill.isActive ? 'bg-teal-50/30 border-teal-100/50' : ''}`}
               >
-                              <div className="flex items-center w-1/3">
-                  <span className="w-8 text-stone-400 text-sm font-medium">{skill.rank}</span>
+                <div className="flex items-center w-1/3">
+                  <span className="w-8 text-stone-300 text-sm font-black italic">{skill.rank}</span>
                   <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-base font-serif italic text-stone-900">{skill.name}</span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-lg font-serif italic text-stone-900 group-hover:text-teal-900 transition-colors">{skill.name}</span>
                       {skill.isSurging && (
-                        <span className="px-1.5 py-0.5 rounded bg-teal-800 text-white text-[9px] font-bold tracking-widest uppercase">
+                        <span className="px-2 py-0.5 rounded-md bg-stone-950 text-white text-[8px] font-black tracking-[0.1em] uppercase shadow-lg shadow-stone-900/20">
                           Surging
                         </span>
                       )}
@@ -81,21 +92,21 @@ const MarketPulse: React.FC = () => {
                 </div>
 
                 <div className="flex flex-col w-1/6">
-                  <span className="text-sm font-semibold text-stone-900">{skill.roles}</span>
-                  <span className="text-[10px] text-stone-500 uppercase tracking-wider font-medium">Open Roles</span>
+                  <span className="text-sm font-bold text-stone-900 tracking-tight">{skill.roles}</span>
+                  <span className="text-[9px] text-stone-400 uppercase tracking-widest font-black">Active Req</span>
                 </div>
 
                 <div className="flex flex-col w-1/6">
-                  <span className="text-sm font-mono font-semibold text-stone-700">{skill.salary}</span>
-                  <span className="text-[10px] text-stone-500 uppercase tracking-wider font-medium">Avg Base</span>
+                  <span className="text-sm font-bold text-stone-900 tracking-tight">{skill.salary}</span>
+                  <span className="text-[9px] text-stone-400 uppercase tracking-widest font-black">Market Median</span>
                 </div>
 
-                <div className="w-24 flex justify-center">
+                <div className="w-24 flex justify-center scale-110">
                   <TrendLine data={skill.trend} isUp={skill.isUp} />
                 </div>
 
                 <div className="w-20 flex justify-end">
-                  <div className={`px-2 py-1 rounded text-[11px] font-bold ${skill.isUp ? 'text-emerald-700 bg-emerald-50' : 'text-rose-700 bg-rose-50'}`}>
+                  <div className={`px-3 py-1 rounded-lg text-[10px] font-black tracking-widest ${skill.isUp ? 'text-teal-700 bg-teal-50 border border-teal-100' : 'text-rose-700 bg-rose-50 border border-rose-100'}`}>
                     {skill.change}
                   </div>
                 </div>
@@ -104,56 +115,58 @@ const MarketPulse: React.FC = () => {
           </div>
         </div>
 
-      
-        <div className="w-full lg:w-[350px]">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-serif italic text-stone-900 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-teal-600" />
-              Market Pulse
+        <div className="w-full xl:w-[380px] space-y-8">
+          <div>
+            <h2 className="text-2xl font-serif italic text-stone-900 flex items-center gap-3 mb-8">
+              <span className="w-2 h-2 rounded-full bg-teal-600 shadow-[0_0_10px_rgba(20,184,166,0.5)]" />
+              Pulse Signals
             </h2>
+
+            <div className="relative border-l-2 border-stone-100 ml-2 space-y-10 pb-6">
+              <div className="relative pl-8">
+                <div className="absolute -left-[9px] top-1.5 w-4 h-4 rounded-full bg-white border-2 border-teal-600 shadow-sm" />
+                <div className="flex justify-between items-baseline mb-2">
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-teal-700">Urgent Signal</span>
+                </div>
+                <p className="text-sm text-stone-800 leading-relaxed font-medium mb-4">
+                  Senior Rust Engineer openings spiked by 15% in San Francisco over the last 48 hours. Enterprise demand is decoupling from startup cycles.
+                </p>
+                <div className="flex gap-2">
+                  <span className="px-2.5 py-1 bg-stone-50 text-stone-500 text-[9px] font-bold uppercase tracking-widest border border-stone-200/60 rounded-md">Enterprise</span>
+                  <span className="px-2.5 py-1 bg-teal-50 text-teal-700 text-[9px] font-bold uppercase tracking-widest border border-teal-100 rounded-md">$180k+ Target</span>
+                </div>
+              </div>
+
+              <div className="relative pl-8">
+                <div className="absolute -left-[9px] top-1.5 w-4 h-4 rounded-full bg-white border-2 border-stone-200 shadow-sm" />
+                <div className="flex justify-between items-baseline mb-2">
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-400">Trend Shift</span>
+                </div>
+                <p className="text-sm text-stone-600 leading-relaxed">
+                  New contract volume for React Native developers decreased slightly, favoring native Swift/Kotlin roles as performance requirements tighten.
+                </p>
+              </div>
+
+              <div className="relative pl-8">
+                <div className="absolute -left-[9px] top-1.5 w-4 h-4 rounded-full bg-white border-2 border-stone-200 shadow-sm" />
+                <div className="flex justify-between items-baseline mb-2">
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-400">Ecosystem Note</span>
+                </div>
+                <p className="text-sm text-stone-600 leading-relaxed">
+                  Kubernetes dominance in cloud infrastructure roles persists, with a 12% MoM increase in "Platform Engineer" requisitions.
+                </p>
+              </div>
+            </div>
           </div>
 
-          <div className="relative border-l border-stone-200 ml-2 space-y-8 pb-4">
-            
-            <div className="relative pl-5">
-              <div className="absolute -left-[5px] top-1.5 w-2 h-2 rounded-full bg-teal-600 ring-4 ring-white" />
-              <div className="flex justify-between items-baseline mb-1">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-teal-700">High Urgency</span>
-              </div>
-              <p className="text-sm text-stone-800 leading-relaxed font-medium mb-3">
-                Senior Rust Engineer openings spiked by 15% in San Francisco over the last 48 hours.
-              </p>
-              <div className="flex gap-2">
-                <span className="px-2 py-1 bg-stone-50 text-stone-600 text-[10px] border border-stone-200 rounded">Enterprise</span>
-                <span className="px-2 py-1 bg-stone-50 text-stone-600 text-[10px] border border-stone-200 rounded">$180k+</span>
-              </div>
-            </div>
-
-            <div className="relative pl-5">
-              <div className="absolute -left-[5px] top-1.5 w-2 h-2 rounded-full bg-stone-300 ring-4 ring-white" />
-              <div className="flex justify-between items-baseline mb-1">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-stone-500">Trend Shift</span>
-              </div>
-              <p className="text-sm text-stone-600 leading-relaxed">
-                New contract volume for React Native developers decreased slightly, favoring native Swift/Kotlin roles.
-              </p>
-            </div>
-
-            <div className="relative pl-5">
-              <div className="absolute -left-[5px] top-1.5 w-2 h-2 rounded-full bg-stone-300 ring-4 ring-white" />
-              <div className="flex justify-between items-baseline mb-1">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-stone-500">Ecosystem Note</span>
-              </div>
-              <p className="text-sm text-stone-600 leading-relaxed">
-                Enterprise demand for Kubernetes expertise remains dominant in cloud infrastructure roles.
-              </p>
-            </div>
-
+          <div className="premium-card p-6 bg-stone-900 text-white relative overflow-hidden group">
+            <div className="absolute right-0 top-0 -mt-6 -mr-6 w-24 h-24 bg-teal-500 rounded-full blur-3xl opacity-20 transition-opacity" />
+            <h3 className="text-lg font-bold mb-2 relative z-10">Premium Insights</h3>
+            <p className="text-xs text-stone-400 leading-relaxed mb-6 relative z-10">Get deep-tier hiring data and direct recruiter contact points for high-urgency roles.</p>
+            <button className="w-full py-3 bg-white text-stone-900 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-stone-100 transition-all shadow-lg shadow-white/5 relative z-10">
+              Upgrade to Intelligence Pro
+            </button>
           </div>
-
-          <button className="w-full py-2.5 mt-2 bg-white border border-stone-200 text-stone-600 text-xs font-semibold rounded hover:bg-stone-50 transition-colors">
-            Load historical signals
-          </button>
         </div>
       </div>
     </div>

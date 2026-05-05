@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useUser, useClerk } from '@clerk/clerk-react'
 import { Link, useLocation } from 'react-router-dom';
 import useUserSync from '../../hooks/userSync';
@@ -7,10 +7,8 @@ import useUserSync from '../../hooks/userSync';
 const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   useUserSync()
   const { user } = useUser()
-const { signOut } = useClerk()
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { signOut } = useClerk()
   const location = useLocation();
-  
 
   const navItems = [
     { name: 'Idea Engine', path: '/ideas', icon: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg> },
@@ -39,7 +37,6 @@ const { signOut } = useClerk()
           })}
         </nav>
 
-     
         <div className="p-4 border-t border-[#EAE8E1] mt-auto space-y-1">
        
           <Link to="/settings" className="flex items-center gap-3 px-4 py-2 rounded-lg text-sm text-stone-600 hover:bg-stone-200/50 hover:text-stone-900 font-medium transition-colors">
@@ -67,7 +64,7 @@ const { signOut } = useClerk()
   </div>
   <div className="flex-1 min-w-0">
     <p className="text-sm font-semibold text-stone-900 truncate">
-      {user?.fullName || user?.firstName || 'Developer'}
+      {user?.fullName || 'Developer'}
     </p>
     <p className="text-[10px] text-stone-500 truncate">Free Plan</p>
   </div>
