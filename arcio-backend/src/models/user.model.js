@@ -54,6 +54,14 @@ const userSchema = new mongoose.Schema({
       type: Number,
       default: 0
     },
+    topScore: {
+      type: Number,
+      default: 0
+    },
+    averageScore: {
+      type: Number,
+      default: 0
+    },
     reposAnalyzed: {
       type: Number,
       default: 0
@@ -69,6 +77,10 @@ const userSchema = new mongoose.Schema({
     lastScoreChange: {
       type: Number,
       default: 0
+    },
+    lastAnalyzedAt: {
+      type: Date,
+      default: null
     }
   },
 

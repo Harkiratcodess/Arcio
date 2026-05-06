@@ -28,7 +28,7 @@ const syncUser = async (req, res, next) => {
       logger.info(`New user created: ${email}`)
     }
 
-    await setCache(`user:${clerkId}`, user, 1800)
+    await setCache(`user:${clerkId}`, user.toObject(), 1800)
 
     res.status(200).json({
       success: true,
@@ -57,7 +57,7 @@ const getProfile = async (req, res, next) => {
     }
 
 
-    await setCache(`user:${userId}`, user, 1800)
+    await setCache(`user:${userId}`, user.toObject(), 1800)
 
     res.status(200).json({
       success: true,

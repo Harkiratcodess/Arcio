@@ -3,7 +3,8 @@ const logger = require('./logger')
 
 const setCache = async (key, data, expirySeconds = 3600) => {
   try {
-    await redis.set(key, JSON.stringify(data), { ex: expirySeconds })
+    // @upstash/redis handles JSON.stringify automatically for objects
+    await redis.set(key, data, { ex: expirySeconds })
     logger.info(`Cache set: ${key}`)
   } catch (error) {
     logger.error(`Cache set failed: ${error.message}`)
@@ -12,10 +13,19 @@ const setCache = async (key, data, expirySeconds = 3600) => {
 
 const getCache = async (key) => {
   try {
-    const data = await redis.get(key)
+    let data = await redis.get(key)
     if (data) {
       logger.info(`Cache hit: ${key}`)
-      return JSON.parse(data)
+      // If it's a string, try to parse it (handles legacy stringified data)
+      if (typeof data === 'string') {
+        try {
+          return JSON.parse(data)
+        } catch (e) {
+          // If parsing fails, it's a plain string, return as is
+          return data
+        }
+      }
+      return data
     }
     logger.info(`Cache miss: ${key}`)
     return null

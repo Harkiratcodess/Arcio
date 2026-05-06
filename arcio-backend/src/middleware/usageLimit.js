@@ -1,16 +1,17 @@
 const User = require('../models/user.model')
 const { AppError } = require('./errorHandler')
 const logger = require('../utils/logger')
+const redis = require('../config/redis')
 
 // Plan limits configuration
 const PLAN_LIMITS = {
   free: {
-    dailyAnalyses: 2,
+    dailyAnalyses: 3,
     fileAnalysisCount: 5  
   },
   pro: {
-    dailyAnalyses: 7,
-    fileAnalysisCount: 10 
+    dailyAnalyses: 10,
+    fileAnalysisCount: 15 
   }
 }
 
@@ -31,20 +32,23 @@ const checkUsageLimit = async (req, res, next) => {
     const plan = user.plan || 'free'
     const limits = PLAN_LIMITS[plan]
 
+    const today = new Date().toISOString().split('T')[0]
+    const redisKey = `analyze:count:${userId}:${today}`
     
-    const now = new Date()
-    const lastDate = user.usage?.lastAnalysisDate
-    const isNewDay = !lastDate || 
-      new Date(lastDate).toDateString() !== now.toDateString()
-
-    let currentCount = isNewDay ? 0 : (user.usage?.dailyAnalysisCount || 0)
+    let currentCount = 0
+    try {
+      const cachedCount = await redis.get(redisKey)
+      currentCount = cachedCount ? parseInt(cachedCount) : 0
+    } catch (err) {
+      logger.error(`Redis error in usage check: ${err.message}`)
+      // Fallback to DB if redis fails
+      const now = new Date()
+      const lastDate = user.usage?.lastAnalysisDate
+      const isNewDay = !lastDate || new Date(lastDate).toDateString() !== now.toDateString()
+      currentCount = isNewDay ? 0 : (user.usage?.dailyAnalysisCount || 0)
+    }
 
     if (currentCount >= limits.dailyAnalyses) {
-      const resetTime = new Date(now)
-      resetTime.setDate(resetTime.getDate() + 1)
-      resetTime.setHours(0, 0, 0, 0)
-      const hoursLeft = Math.ceil((resetTime - now) / (1000 * 60 * 60))
-
       logger.warn(`Usage limit hit: ${userId} (${plan} plan, ${currentCount}/${limits.dailyAnalyses})`)
 
       return res.status(429).json({
@@ -54,7 +58,6 @@ const checkUsageLimit = async (req, res, next) => {
           plan,
           used: currentCount,
           limit: limits.dailyAnalyses,
-          resetsIn: `${hoursLeft} hours`,
           upgradeAvailable: plan === 'free'
         }
       })
@@ -64,7 +67,7 @@ const checkUsageLimit = async (req, res, next) => {
     req.planLimits = limits
     req.currentUsage = currentCount
     req.userDoc = user
-    req.isNewDay = isNewDay
+    req.redisKey = redisKey
 
     next()
   } catch (error) {
@@ -73,14 +76,27 @@ const checkUsageLimit = async (req, res, next) => {
   }
 }
 
-const incrementUsage = async (user, isNewDay) => {
+const incrementUsage = async (user, redisKey) => {
   try {
+    // Increment in Redis with 24h TTL
+    try {
+      const count = await redis.incr(redisKey)
+      if (count === 1) {
+        await redis.expire(redisKey, 86400) // 1 day
+      }
+    } catch (err) {
+      logger.error(`Redis increment failed: ${err.message}`)
+    }
+
+    // Still sync to DB for persistence and leaderboard
     await User.findByIdAndUpdate(user._id, {
       $set: {
-        'usage.dailyAnalysisCount': isNewDay ? 1 : (user.usage?.dailyAnalysisCount || 0) + 1,
         'usage.lastAnalysisDate': new Date()
       },
-      $inc: { 'stats.reposAnalyzed': 1 }
+      $inc: { 
+        'usage.dailyAnalysisCount': 1,
+        'stats.reposAnalyzed': 1 
+      }
     })
 
     logger.info(`Usage incremented for user ${user.clerkId}`)
@@ -90,3 +106,4 @@ const incrementUsage = async (user, isNewDay) => {
 }
 
 module.exports = { checkUsageLimit, incrementUsage, PLAN_LIMITS }
+

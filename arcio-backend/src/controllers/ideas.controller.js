@@ -4,11 +4,18 @@ const logger = require('../utils/logger')
 
 exports.getIdeas = async (req, res) => {
   try {
-    const { category, difficulty } = req.query
+    const { category, difficulty, q } = req.query
     let query = {}
     
     if (category) query.categoryTags = { $in: [category] }
     if (difficulty) query.difficulty = difficulty
+    if (q) {
+      query.$or = [
+        { title: { $regex: q, $options: 'i' } },
+        { description: { $regex: q, $options: 'i' } },
+        { stack: { $in: [new RegExp(q, 'i')] } }
+      ]
+    }
 
     const ideas = await Idea.find(query).sort({ importanceScore: -1 }).limit(20)
     

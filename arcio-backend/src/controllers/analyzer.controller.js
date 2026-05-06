@@ -3,6 +3,8 @@ const { getAIResponse } = require('../config/ai')
 const { setCache, getCache } = require('../utils/cache')
 const { AppError } = require('../middleware/errorHandler')
 const { incrementUsage, PLAN_LIMITS } = require('../middleware/usageLimit')
+const Analysis = require('../models/analysis.model')
+const User = require('../models/user.model')
 const logger = require('../utils/logger')
 
 const parseGitHubUrl = (url) => {
@@ -23,27 +25,29 @@ const parseGitHubUrl = (url) => {
 }
 
 const fetchRepoData = async (owner, repo) => {
-  const [repoInfo, readme, tree] = await Promise.allSettled([
-    octokit.rest.repos.get({ owner, repo }),
-    octokit.rest.repos.getContent({ owner, repo, path: 'README.md' }),
-    octokit.rest.git.getTree({ owner, repo, tree_sha: 'HEAD', recursive: 'true' })
-  ])
+  const treeRes = await octokit.rest.git.getTree({ owner, repo, tree_sha: 'HEAD', recursive: 'true' })
+  const fileTree = treeRes.data.tree
+    .filter(f => f.type === 'blob')
+    .map(f => f.path)
 
-  const repoData = repoInfo.status === 'fulfilled' ? repoInfo.value.data : null
-  if (!repoData) throw new AppError('Repository not found or is private', 404)
+  const repoInfo = await octokit.rest.repos.get({ owner, repo })
+  const repoData = repoInfo.data
 
+  // Find README with case-insensitivity
+  const actualReadmePath = fileTree.find(f => f.toLowerCase() === 'readme.md')
   let readmeContent = ''
   let readmeExists = false
-  if (readme.status === 'fulfilled') {
-    readmeContent = Buffer.from(readme.value.data.content, 'base64').toString('utf-8')
-    readmeExists = true
-  }
 
-  let fileTree = []
-  if (tree.status === 'fulfilled') {
-    fileTree = tree.value.data.tree
-      .filter(f => f.type === 'blob')
-      .map(f => f.path)
+  if (actualReadmePath) {
+    try {
+      const readmeRes = await octokit.rest.repos.getContent({ owner, repo, path: actualReadmePath })
+      if (readmeRes.data.content) {
+        readmeContent = Buffer.from(readmeRes.data.content, 'base64').toString('utf-8')
+        readmeExists = true
+      }
+    } catch (err) {
+      logger.warn(`Failed to fetch README at ${actualReadmePath}: ${err.message}`)
+    }
   }
 
   return { repoData, readmeContent, readmeExists, fileTree }
@@ -71,7 +75,7 @@ const selectFilesForAnalysis = (fileTree, maxFiles) => {
     /^(index|main|app|server)\.(js|ts|tsx|jsx|py)$/i,
     /^(package|composer|Cargo|Gemfile|requirements)\.(json|toml|lock|txt)$/i,
     // Core source files
-    /\.(js|ts|tsx|jsx|py|java|go|rs|rb|php|cs)$/i,
+    /\.(js|ts|tsx|jsx|py|java|go|rs|rb|php|cs|html|css)$/i,
     // Config files people often misconfigure
     /\.(config|rc)\.(js|ts|json|yml|yaml)$/i,
     /^\.?(eslint|prettier|babel|webpack|vite|tsconfig)/i,
@@ -120,7 +124,10 @@ const selectFilesForAnalysis = (fileTree, maxFiles) => {
 
   // Sort by score descending and take top N
   scored.sort((a, b) => b.score - a.score)
-  return scored.slice(0, maxFiles).map(s => s.path)
+  
+  // Ensure we definitely include the entry point if it exists
+  const topFiles = scored.slice(0, maxFiles).map(s => s.path)
+  return topFiles
 }
 
 const calculateProgrammaticScores = (repoData, readmeContent, readmeExists, fileTree) => {
@@ -194,13 +201,14 @@ const analyzeRepo = async (req, res, next) => {
 
     const cacheKey = `analysis:${owner}:${repo}:${userPlan}`
 
+    /* Commenting out cache to ensure user sees the fresh fix for case-sensitivity and deep analysis
     const cached = await getCache(cacheKey)
     if (cached) {
       logger.info(`Cache hit for repo: ${owner}/${repo} (${userPlan})`)
 
       // Still increment usage even for cached results
       if (req.userDoc) {
-        await incrementUsage(req.userDoc, req.isNewDay)
+        await incrementUsage(req.userDoc, req.redisKey)
       }
 
       return res.status(200).json({ 
@@ -215,6 +223,7 @@ const analyzeRepo = async (req, res, next) => {
         }
       })
     }
+    */
 
     logger.info(`Analyzing repo: ${owner}/${repo} (${userPlan} plan, ${fileLimit} files)`)
 
@@ -231,6 +240,13 @@ const analyzeRepo = async (req, res, next) => {
     // Always analyze README first (if it exists), then the selected files
     const allFilesToAnalyze = readmeExists ? ['README.md', ...filesToAnalyze] : filesToAnalyze
     
+    // Explicitly fetch package.json for better context
+    let packageJsonContent = 'Not found'
+    if (fileTree.includes('package.json')) {
+      const pj = await fetchFileContent(owner, repo, 'package.json')
+      if (pj) packageJsonContent = pj.slice(0, 1500)
+    }
+
     // Fetch file contents in parallel (limit concurrency)
     const fileContents = []
     const batchSize = 5
@@ -259,46 +275,53 @@ const analyzeRepo = async (req, res, next) => {
     ).join('\n\n')
 
     // Enhanced AI prompt with deep file analysis
-    const aiPrompt = `You are a senior developer reviewing a GitHub repository for portfolio quality. Provide a THOROUGH code review.
+    const aiPrompt = `### ROLE
+You are a WORLD-CLASS Senior Software Architect performing a deep-dive technical audit for a developer's portfolio project. 
+Your goal is to provide GENUINE, TECHNICAL, and OPINIONATED feedback. 
 
-Repository: ${owner}/${repo}
-Language: ${repoData.language || 'Unknown'}
-Stars: ${repoData.stargazers_count}
-Description: ${repoData.description || 'No description'}
-Full file tree (${fileTree.length} files): ${fileTree.slice(0, 60).join(', ')}
+### REPOSITORY CONTEXT
+- Repo: ${owner}/${repo}
+- Primary Language: ${repoData.language || 'Unknown'}
+- README Status: ${readmeExists ? 'ALREADY EXISTS (DO NOT SUGGEST ADDING ONE)' : 'MISSING'}
+- Package.json Status: ${packageJsonContent !== 'Not found' ? 'FOUND' : 'MISSING'}
 
-STRUCTURE ISSUES FOUND:
-${structureIssues.length > 0 ? structureIssues.map(i => `- ${i}`).join('\n') : '- No major structural issues'}
+### REPOSITORY DATA
+**FILE TREE:**
+${fileTree.slice(0, 100).join('\n')}
 
-FILES ANALYZED (${fileContents.length} files):
+**README CONTENT:**
+${readmeContent ? readmeContent.slice(0, 4000) : 'NO README CONTENT PROVIDED'}
+
+**PACKAGE.JSON:**
+${packageJsonContent}
+
+**ACTUAL SOURCE CODE SAMPLES:**
 ${fileAnalysisSection}
 
-Please provide:
-1. A code quality score out of 100
-2. A detailed summary of the repository (1-2 paragraphs)
-3. Exactly 3 specific improvement suggestions
-4. For EACH analyzed file, provide specific feedback with issues found and suggestions
+### YOUR CHALLENGE
+Developers hate generic advice. They already know they should "add tests" or "add a README". 
+Your job is to look at the ACTUAL CODE above and find patterns that need fixing.
 
-Respond ONLY in this exact JSON format, no other text.
-**CRITICAL:** The "summary" must be a natural language explanation for a human. Do NOT include file markers, code blocks, or raw data in the summary.
+**STRICT RESPONSE RULES:**
+1. **NO GENERIC ADVICE:** Never suggest "Add a README", "Add tests", or "Add a license" unless the file is truly missing AND it's the most critical thing to fix. Since the README is ${readmeExists ? 'ALREADY PRESENT' : 'MISSING'}, act accordingly.
+2. **CODE-LEVEL FEEDBACK:** At least 2 improvements MUST cite specific logic, components, or patterns found in the "ACTUAL SOURCE CODE SAMPLES" above.
+3. **CITATIONS:** Every improvement MUST include a "fileLocation".
+4. **EXAMPLES:** Every improvement MUST include a "example" snippet showing a better implementation.
+5. **ARCHITECTURAL GRIT:** Be honest. If the code is messy, explain why. If the structure is flat, suggest a modular approach.
+
+### OUTPUT FORMAT
+Respond ONLY in this exact JSON format:
 {
   "codeQualityScore": 75,
-  "summary": "One paragraph honest summary of the repo quality, what's good and what needs work. Focus on high-level architecture and patterns.",
+  "summary": "3-4 sentences of gritty, honest technical assessment.",
   "improvements": [
     {
-      "title": "Clear title of improvement",
-      "description": "Specific, actionable description with WHY it matters",
-      "difficulty": "Quick Fix | Medium | High Effort",
-      "priority": "Critical | Important | Nice to Have"
-    }
-  ],
-  "fileReviews": [
-    {
-      "path": "filename.js",
-      "score": 75,
-      "issues": ["Issue 1 found in this file", "Issue 2"],
-      "suggestions": ["Suggestion 1", "Suggestion 2"],
-      "severity": "good | needs-work | critical"
+      "title": "Specific Technical Title",
+      "description": "Deeply technical explanation of the issue and why the current pattern is bad for scalability or maintenance.",
+      "difficulty": "Quick Fix | Medium | Hard",
+      "priority": "Critical | Important | Nice to Have",
+      "fileLocation": "src/path/to/file.ext",
+      "example": "// code here"
     }
   ]
 }`
@@ -310,11 +333,11 @@ Respond ONLY in this exact JSON format, no other text.
       const cleaned = aiResponse.replace(/```json|```/g, '').trim()
       aiData = JSON.parse(cleaned)
     } catch {
+      logger.error(`AI response parse failed. Raw response: ${aiResponse}`)
       aiData = {
         codeQualityScore: 70,
         improvements: [],
-        summary: aiResponse,
-        fileReviews: []
+        summary: aiResponse
       }
     }
 
@@ -356,12 +379,55 @@ Respond ONLY in this exact JSON format, no other text.
 
     await setCache(cacheKey, result, 3600)
 
-    // Increment usage count
+    // Save to Analysis Collection
+    const newAnalysis = await Analysis.create({
+      userId: req.userId,
+      repoUrl: repoUrl,
+      repoFullName: `${owner}/${repo}`,
+      scores: result.scores,
+      improvements: result.improvements,
+      summary: result.summary,
+      public: true
+    })
+
+    // Update User Stats
     if (req.userDoc) {
-      await incrementUsage(req.userDoc, req.isNewDay)
+      const user = req.userDoc
+      const newTotalRepos = (user.stats?.reposAnalyzed || 0) + 1
+      const currentAvg = user.stats?.averageScore || 0
+      const newAvg = Math.round(((currentAvg * (newTotalRepos - 1)) + overallScore) / newTotalRepos)
+      const newTopScore = Math.max(user.stats?.topScore || 0, overallScore)
+      
+      // Streak logic
+      let newStreak = user.stats?.weeklyStreak || 0
+      const lastAnalyzed = user.stats?.lastAnalyzedAt
+      const now = new Date()
+      
+      if (lastAnalyzed) {
+        const diffDays = Math.floor((now - new Date(lastAnalyzed)) / (1000 * 60 * 60 * 24))
+        if (diffDays === 1) {
+          newStreak += 1
+        } else if (diffDays > 1) {
+          newStreak = 1
+        }
+      } else {
+        newStreak = 1
+      }
+
+      await User.findByIdAndUpdate(user._id, {
+        $set: {
+          'stats.topScore': newTopScore,
+          'stats.averageScore': newAvg,
+          'stats.weeklyStreak': newStreak,
+          'stats.lastAnalyzedAt': now,
+          'stats.lastScoreChange': overallScore - (user.scores?.overall || 0) // Approximation
+        }
+      })
+
+      await incrementUsage(user, req.redisKey)
     }
 
-    logger.info(`Analysis complete for ${owner}/${repo} — score: ${overallScore}, files: ${allFilesToAnalyze.length}`)
+    logger.info(`Analysis complete and saved for ${owner}/${repo} — score: ${overallScore}`)
 
     res.status(200).json({ 
       success: true, 
@@ -387,22 +453,22 @@ const chatAboutRepo = async (req, res, next) => {
       return next(new AppError('Message is required', 400))
     }
 
-    const systemPrompt = `You are Arcio AI, a senior code review assistant helping developers improve their GitHub portfolios.
+    const systemPrompt = `You are Arcio Architect, an elite technical lead and portfolio consultant. 
+You are discussing the architectural audit of ${repoContext?.repo?.fullName || 'this repository'}.
 
-Current repo being discussed: ${repoContext?.repo?.fullName || 'unknown'}
-Overall score: ${repoContext?.scores?.overall || 'unknown'}/100
-Key issues: ${repoContext?.improvements?.map(i => i.title).join(', ') || 'none'}
+### AUDIT CONTEXT
+- Score: ${repoContext?.scores?.overall || 'unknown'}/100
+- Improvements Identified: ${repoContext?.improvements?.map(i => i.title).join(', ') || 'none'}
+- Files Analyzed: ${repoContext?.filesAnalyzed || 0}
 
-Rules you always follow:
-- Never write full code for the user
-- Give file structure suggestions, not implementations  
-- Max 4-5 lines of example code only when absolutely necessary
-- Keep responses short, conversational, direct — like a senior dev
-- Stay focused on the repo being analyzed
-- Explain WHY improvements matter to recruiters
-- If asked unrelated things, bring them back to the repo
-- CRITICAL: Do NOT use any emojis. Zero emojis allowed.
-- Maintain a highly professional, analytical tone at all times.
+### COMMUNICATION STYLE (Claude/GPT-4o Style)
+- Be extremely technical and direct.
+- Use a sophisticated, helpful, and analytical tone.
+- If the user asks about a "lack of README" or other generic issues that were identified erroneously in the past, acknowledge that you are now looking at the ACTUAL code and provide a better insight.
+- Provide 2-3 line code snippets if it helps clarify a point.
+- Focus on how the developer can impress recruiters with their code structure.
+- NO generic advice. If you can't be specific, be inquisitive about their design choices.
+- DO NOT use emojis. Keep it professional and editorial.
 
 User message: ${message}`
 

@@ -39,6 +39,8 @@ app.get('/', (req, res) => {
 app.use('/api/users', require('./src/routes/user.routes'))
 app.use('/api/analyzer', require('./src/routes/analyzer.routes'))
 app.use('/api/ideas', require('./src/routes/ideas.routes'))
+app.use('/api/market', require('./src/routes/market.routes'))
+app.use('/api/leaderboard', require('./src/routes/leaderboard.routes'))
 
 app.use(errorHandler)
 

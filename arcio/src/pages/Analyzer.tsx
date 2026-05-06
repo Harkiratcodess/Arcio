@@ -4,9 +4,25 @@ import DashboardLayout from '../components/dashboard/DashboardLayout';
 
 const API = 'http://localhost:5000/api';
 
-interface Usage { plan: string; used: number; limit: number; filesPerAnalysis: number; remaining: number; totalReposAnalyzed: number; upgradeAvailable: boolean; }
+interface Usage { 
+  plan: string; 
+  used: number; 
+  limit: number; 
+  filesPerAnalysis: number; 
+  remaining: number; 
+  totalReposAnalyzed: number; 
+  upgradeAvailable: boolean; 
+}
+
 interface FileReview { path: string; score: number; issues: string[]; suggestions: string[]; severity: string; }
-interface Improvement { title: string; description: string; difficulty: string; priority?: string; }
+interface Improvement { 
+  title: string; 
+  description: string; 
+  difficulty: string; 
+  priority?: string; 
+  fileLocation?: string;
+  example?: string;
+}
 interface AnalysisData {
   repo: { name: string; owner: string; fullName: string; description: string; language: string; stars: number; forks: number; url: string; updatedAt: string; };
   scores: { overall: number; codeQuality: number; architecture: number; readme: number; naming: number; };
@@ -27,6 +43,9 @@ const Analyzer: React.FC = () => {
   const [usage, setUsage] = useState<Usage | null>(null);
   const [error, setError] = useState('');
   const [progress, setProgress] = useState(0);
+  const [chatMessages, setChatMessages] = useState<{role: 'user'|'ai', text: string}[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
 
   useEffect(() => { fetchUsage(); }, []);
 
@@ -69,6 +88,34 @@ const Analyzer: React.FC = () => {
     }
   };
 
+  const handleChat = async () => {
+    if (!chatInput.trim() || chatLoading || !analysis) return;
+    const msg = chatInput;
+    setChatInput('');
+    setChatMessages(p => [...p, { role: 'user', text: msg }]);
+    setChatLoading(true);
+
+    try {
+      const token = await getToken();
+      const res = await fetch(`${API}/analyzer/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ 
+          message: msg,
+          repoContext: analysis
+        })
+      });
+      const d = await res.json();
+      if (d.success) {
+        setChatMessages(p => [...p, { role: 'ai', text: d.data.message }]);
+      }
+    } catch {
+      setChatMessages(p => [...p, { role: 'ai', text: 'Error connecting to Arcio Intelligence.' }]);
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="flex flex-col lg:flex-row gap-10 min-h-full animate-fade-in-up pb-10">
@@ -78,7 +125,16 @@ const Analyzer: React.FC = () => {
           
           {/* Analyze Input Card */}
           <div className="premium-card p-8 bg-white border border-stone-200">
-            <h1 className="text-3xl font-serif italic text-stone-900 mb-4 tracking-tight">Let's analyze your project</h1>
+            <div className="flex justify-between items-center mb-6">
+              <h1 className="text-3xl font-serif italic text-stone-900 tracking-tight">Project Analysis</h1>
+              {usage && (
+                <div className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 ${usage.plan === 'pro' ? 'bg-teal-900 text-teal-100' : 'bg-stone-100 text-stone-500'}`}>
+                  {usage.plan === 'pro' && <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>}
+                  {usage.plan}
+                </div>
+              )}
+            </div>
+            
             <p className="text-sm text-stone-500 mb-8 leading-relaxed font-medium">Connect your repository to uncover insights, detect hidden issues, and elevate your architecture.</p>
             
             <div className="space-y-6">
@@ -98,23 +154,31 @@ const Analyzer: React.FC = () => {
                 </div>
               </div>
 
-              {/* Drag & Drop Zone */}
-              <div className="border-2 border-dashed border-stone-200 rounded-2xl p-10 flex flex-col items-center justify-center text-center space-y-4 bg-stone-50/50">
-                <div className="w-12 h-12 rounded-xl bg-white border border-stone-200 flex items-center justify-center text-teal-600 shadow-sm">
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
+              {usage && (
+                <div className="p-5 bg-stone-50 rounded-2xl border border-stone-200/50">
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-stone-400">Daily Balance</span>
+                    <span className="text-xs font-bold text-stone-900">{usage.remaining} / {usage.limit} left</span>
+                  </div>
+                  <div className="w-full h-1 bg-stone-200 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full transition-all duration-700 ${usage.remaining === 0 ? 'bg-rose-500' : 'bg-stone-900'}`} 
+                      style={{ width: `${(usage.remaining / usage.limit) * 100}%` }} 
+                    />
+                  </div>
+                  <div className="flex justify-between mt-3">
+                    <span className="text-[9px] font-bold text-stone-400 uppercase tracking-tighter">Total Repos Analyzed</span>
+                    <span className="text-[9px] font-black text-stone-900">{usage.totalReposAnalyzed}</span>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-bold text-stone-900">Drag & drop source directory</p>
-                  <p className="text-xs text-stone-400 font-medium mt-1">or <span className="text-teal-600 cursor-pointer">browse files</span></p>
-                </div>
-              </div>
+              )}
 
               <button 
                 onClick={handleAnalyze}
-                disabled={loading || !repoUrl.trim()}
+                disabled={loading || !repoUrl.trim() || (usage?.remaining === 0)}
                 className="w-full py-4 bg-teal-800 hover:bg-teal-900 text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-xl transition-all active:scale-95 shadow-lg shadow-teal-900/10 disabled:opacity-50"
               >
-                {loading ? 'Analyzing Architecture...' : 'Analyze Architecture'}
+                {usage?.remaining === 0 ? 'Daily Limit Reached' : loading ? 'Analyzing Architecture...' : 'Analyze Architecture'}
               </button>
             </div>
           </div>
@@ -164,10 +228,17 @@ const Analyzer: React.FC = () => {
                 <p className="text-[11px] font-bold uppercase tracking-widest text-stone-400">Analysis results for <span className="bg-stone-200 text-stone-900 px-1.5 py-0.5 rounded text-[9px]">{analysis?.repo.fullName ? 'main' : '—'}</span> branch</p>
               </div>
             </div>
-            <button className="flex items-center gap-2 px-4 py-2 border border-stone-200 rounded-lg text-[10px] font-black uppercase tracking-widest text-stone-600 hover:bg-stone-50 transition-all">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-              Export
-            </button>
+            <div className="flex gap-4">
+              {usage?.upgradeAvailable && (
+                <button className="px-5 py-2 bg-stone-900 text-white text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-stone-800 transition-all shadow-lg shadow-stone-900/10">
+                  Upgrade to Pro
+                </button>
+              )}
+              <button className="flex items-center gap-2 px-4 py-2 border border-stone-200 rounded-lg text-[10px] font-black uppercase tracking-widest text-stone-600 hover:bg-stone-50 transition-all">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                Export
+              </button>
+            </div>
           </div>
 
           {/* Metrics Row */}
@@ -216,55 +287,141 @@ const Analyzer: React.FC = () => {
             ))}
           </div>
 
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
             
-            {/* Topology Map Card */}
-            <div className="xl:col-span-2 premium-card overflow-hidden bg-stone-100 border border-stone-200 h-[450px] relative group">
-              <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1558655146-d09347e92766?auto=format&fit=crop&q=80&w=2000')] bg-cover bg-center opacity-40 mix-blend-multiply" />
-              <div className="absolute inset-0 bg-gradient-to-t from-stone-900/40 to-transparent" />
-              
-              <div className="absolute bottom-6 left-6 z-10">
-                <div className="flex items-center gap-3 bg-white/90 backdrop-blur-md px-4 py-2.5 rounded-xl border border-white/50 shadow-lg">
-                  <svg className="w-5 h-5 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A2 2 0 013 15.382V6.618a2 2 0 011.106-1.789L9 2m0 18l5.447-2.724A2 2 0 0115 15.382V6.618a2 2 0 01-1.106-1.789L9 4m0 16V4m0 16l5.447-2.724A2 2 0 0115 15.382V6.618a2 2 0 01-1.106-1.789L9 2m0 18l5.447-2.724A2 2 0 0115 15.382V6.618a2 2 0 01-1.106-1.789L9 4m0 16V4m0 16l5.447-2.724A2 2 0 0115 15.382V6.618a2 2 0 01-1.106-1.789L9 2" /></svg>
-                  <span className="text-[11px] font-black uppercase tracking-widest text-stone-900">Topology Map Generated</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Action Items Column */}
-            <div className="premium-card p-6 bg-white border border-stone-200">
+            {/* Improvements Card */}
+            <div className="premium-card p-8 bg-white border border-stone-200">
               <div className="flex items-center justify-between mb-8 pb-4 border-b border-stone-100">
                 <h3 className="text-[10px] font-black uppercase tracking-widest text-stone-400 flex items-center gap-2">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                  Action Items
+                  Critical Improvements
                 </h3>
-                <span className="text-[9px] font-black text-stone-500 bg-stone-100 px-2 py-0.5 rounded uppercase tracking-tighter">
-                  {analysis?.improvements.length || 0} New
-                </span>
+                {analysis && <span className="text-[9px] font-black text-teal-600 bg-teal-50 px-2 py-0.5 rounded uppercase tracking-widest">Live Feedback</span>}
               </div>
 
-              <div className="space-y-4">
-                {analysis ? analysis.improvements.slice(0, 4).map((item, i) => (
-                  <div key={i} className="flex items-start gap-4 p-4 rounded-xl hover:bg-stone-50 transition-all border border-transparent hover:border-stone-100 cursor-pointer group">
-                    <div className={`w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 ${item.difficulty === 'Advanced' ? 'bg-rose-500' : 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.4)]'}`} />
-                    <div className="flex-1">
-                      <h4 className="text-xs font-bold text-stone-900 leading-tight mb-1 group-hover:text-teal-700 transition-colors">{item.title}</h4>
-                      <p className="text-[10px] text-stone-500 font-medium leading-relaxed line-clamp-2">{item.description}</p>
+              <div className="space-y-8">
+                {analysis ? analysis.improvements.map((item, i) => (
+                  <div key={i} className="space-y-4">
+                    <div className="flex items-start gap-4">
+                      <div className={`w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 ${item.difficulty === 'Hard' ? 'bg-rose-500' : 'bg-teal-500'}`} />
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-1">
+                          <h4 className="text-sm font-bold text-stone-900">{item.title}</h4>
+                          <span className="text-[9px] font-bold text-stone-400 bg-stone-50 px-1.5 py-0.5 rounded border border-stone-100">{item.difficulty}</span>
+                        </div>
+                        <p className="text-xs text-stone-500 font-medium leading-relaxed">{item.description}</p>
+                        {item.fileLocation && (
+                          <div className="flex items-center gap-1.5 mt-2">
+                            <svg className="w-3 h-3 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                            <p className="text-[10px] text-teal-700 font-black uppercase tracking-tight">{item.fileLocation}</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <svg className="w-4 h-4 text-stone-300 group-hover:text-stone-600 transition-colors mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                    {item.example && (
+                      <div className="ml-6 relative group/code">
+                        <div className="absolute top-3 right-3 opacity-0 group-hover/code:opacity-100 transition-opacity">
+                          <button className="p-1.5 bg-white/10 hover:bg-white/20 rounded-md text-white/50 hover:text-white transition-all">
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                          </button>
+                        </div>
+                        <div className="p-5 bg-[#0d0d0c] rounded-2xl border border-white/5 overflow-x-auto shadow-2xl">
+                          <pre className="text-[11px] text-stone-300 font-mono leading-relaxed"><code>{item.example}</code></pre>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )) : (
                   <div className="py-20 text-center opacity-30">
-                    <p className="text-xs font-bold text-stone-400">Analysis pending...</p>
+                    <p className="text-xs font-bold text-stone-400 italic">"Clean code is not written, it's rewritten." — Robert C. Martin</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Chatbot Interface */}
+            <div className="premium-card bg-white border border-stone-200 flex flex-col h-[600px]">
+              <div className="p-6 border-b border-stone-100 flex items-center justify-between bg-stone-50/50 rounded-t-3xl">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-stone-900 text-white flex items-center justify-center">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-black uppercase tracking-widest text-stone-900">Arcio Architect</h3>
+                    <p className="text-[9px] text-stone-400 font-bold uppercase tracking-tighter">AI Assistant · Active Context</p>
+                  </div>
+                </div>
+                {analysis && <div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" /><span className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Connected</span></div>}
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide">
+                {!analysis ? (
+                  <div className="h-full flex flex-col items-center justify-center text-center p-8 opacity-20">
+                    <svg className="w-12 h-12 text-stone-900 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+                    <p className="text-xs font-bold text-stone-900 italic">Analyze a repository to start an architectural discussion.</p>
+                  </div>
+                ) : chatMessages.length === 0 ? (
+                  <div className="space-y-4">
+                    <div className="p-5 bg-stone-50 rounded-2xl border border-stone-100 max-w-[90%] shadow-sm">
+                      <p className="text-xs text-stone-700 font-medium leading-relaxed italic">
+                        "{analysis.summary}"
+                      </p>
+                      <div className="mt-4 pt-4 border-t border-stone-200/50 flex items-center justify-between">
+                        <p className="text-[10px] text-stone-400 font-bold uppercase tracking-widest">Architect's Note</p>
+                        <span className="text-[9px] text-teal-600 font-black uppercase">Technical Audit Ready</span>
+                      </div>
+                    </div>
+                    <div className="p-4 bg-teal-50/50 rounded-xl border border-teal-100/50 max-w-[80%]">
+                      <p className="text-[11px] text-teal-800 font-semibold leading-snug">
+                        I've analyzed {analysis.filesAnalyzed} files. Where should we start the deep-dive?
+                      </p>
+                    </div>
+                  </div>
+                ) : chatMessages.map((m, i) => (
+                  <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}>
+                    <div className={`p-5 rounded-2xl max-w-[88%] text-[13px] font-medium leading-relaxed shadow-sm ${m.role === 'user' ? 'bg-stone-900 text-white shadow-stone-900/10' : 'bg-white text-stone-800 border border-stone-100 shadow-stone-200/5'}`}>
+                      {m.text.split('\n').map((line, j) => (
+                        <React.Fragment key={j}>
+                          {line}
+                          <br />
+                        </React.Fragment>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                {chatLoading && (
+                  <div className="flex justify-start">
+                    <div className="bg-stone-50 p-4 rounded-2xl border border-stone-100">
+                      <div className="flex gap-1">
+                        <div className="w-1 h-1 bg-stone-400 rounded-full animate-bounce" />
+                        <div className="w-1 h-1 bg-stone-400 rounded-full animate-bounce [animation-delay:0.2s]" />
+                        <div className="w-1 h-1 bg-stone-400 rounded-full animate-bounce [animation-delay:0.4s]" />
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
 
-              {analysis && (
-                <button className="w-full mt-8 py-3 border border-stone-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-stone-500 hover:text-stone-900 hover:border-stone-900 transition-all">
-                  View Full Report
-                </button>
-              )}
+              <div className="p-4 bg-stone-50/50 border-t border-stone-100 rounded-b-3xl">
+                <div className="relative flex items-center">
+                  <input 
+                    type="text" 
+                    value={chatInput}
+                    onChange={e => setChatInput(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleChat()}
+                    disabled={!analysis || chatLoading}
+                    placeholder={analysis ? "Ask about a specific file or pattern..." : "Analyze repo first..."} 
+                    className="w-full pl-4 pr-12 py-3 bg-white border border-stone-200 rounded-xl text-xs outline-none focus:border-stone-400 transition-all disabled:opacity-50"
+                  />
+                  <button 
+                    onClick={handleChat}
+                    disabled={!analysis || chatLoading || !chatInput.trim()}
+                    className="absolute right-2 p-1.5 bg-stone-900 text-white rounded-lg active:scale-90 transition-all disabled:opacity-50"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+                  </button>
+                </div>
+              </div>
             </div>
 
           </div>
@@ -277,3 +434,4 @@ const Analyzer: React.FC = () => {
 };
 
 export default Analyzer;
+
