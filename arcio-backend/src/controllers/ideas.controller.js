@@ -81,3 +81,23 @@ Answer the inquiry with high-density architectural value.`
     res.status(500).json({ success: false, message: 'Architectural assistant encountered an error' })
   }
 }
+
+exports.triggerScraper = async (req, res) => {
+  try {
+    const { runIdeaScraper } = require('../jobs/ideas.scraper')
+    const result = await runIdeaScraper()
+    
+    res.json({
+      success: true,
+      message: 'Scraper triggered successfully',
+      details: result
+    })
+  } catch (error) {
+    logger.error(`Manual scraper trigger failed: ${error.message}`)
+    res.status(500).json({
+      success: false,
+      message: 'Failed to trigger scraper',
+      error: error.message
+    })
+  }
+}

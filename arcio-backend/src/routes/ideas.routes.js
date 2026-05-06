@@ -5,5 +5,6 @@ const { requireAuth } = require('../middleware/auth')
 
 router.get('/', requireAuth, ideasController.getIdeas)
 router.post('/builder', requireAuth, ideasController.ideaBuilder)
+router.post('/scrape', requireAuth, ideasController.triggerScraper)
 
 module.exports = router

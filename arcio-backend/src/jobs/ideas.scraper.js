@@ -110,9 +110,16 @@ async function fetchProductHunt() {
 
 // Main Runner
 async function runIdeaScraper() {
+  let shouldDisconnect = false
   try {
     logger.info('Starting Arcio Ideas Scraper Pipeline...')
-    await mongoose.connect(process.env.MONGODB_URI)
+    
+    // Step 0: Check connection
+    if (mongoose.connection.readyState !== 1) {
+      logger.info('Connecting to MongoDB for standalone scraper run...')
+      await mongoose.connect(process.env.MONGODB_URI)
+      shouldDisconnect = true
+    }
     
     // Step 1: Parallel fetch all sources
     const [githubIdeas, hnIdeas, devtoIdeas, phIdeas] = await Promise.all([
@@ -126,7 +133,7 @@ async function runIdeaScraper() {
     logger.info(`Total raw ideas collected: ${allRawIdeas.length}`)
     
     if (allRawIdeas.length === 0) {
-      logger.warn('No ideas collected from any source. Exiting.')
+      logger.warn('No ideas collected from any source. Skipping enrichment.')
       return
     }
 
@@ -171,7 +178,6 @@ ${JSON.stringify(allRawIdeas.slice(0, 50))} // Sending first 50 to avoid token l
       enrichedIdeas = JSON.parse(cleaned)
     } catch (err) {
       logger.error('Failed to parse AI response. Raw response was logged.')
-      // logger.debug(aiResponse)
       return
     }
 
@@ -194,10 +200,15 @@ ${JSON.stringify(allRawIdeas.slice(0, 50))} // Sending first 50 to avoid token l
     }
 
     logger.info('Ideas scraper job completed successfully 🚀')
+    return { success: true, count: newIdeas.length }
   } catch (error) {
     logger.error(`Scraper Pipeline Error: ${error.message}`)
+    throw error
   } finally {
-    await mongoose.disconnect()
+    if (shouldDisconnect) {
+      await mongoose.disconnect()
+      logger.info('Disconnected from MongoDB (Standalone run completed)')
+    }
   }
 }
 
