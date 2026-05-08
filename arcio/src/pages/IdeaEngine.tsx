@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { useLocation } from 'react-router-dom';
 import DashboardLayout from '../components/dashboard/DashboardLayout';
+import { API_URL } from '../config/api';
 
-const API = 'http://localhost:5000/api';
+const API = API_URL;
 
 interface Idea {
   _id: string;

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import DashboardLayout from '../components/dashboard/DashboardLayout';
+import { API_URL } from '../config/api';
 
-const API = 'http://localhost:5000/api';
+const API = API_URL;
 
 interface LeaderboardUser {
   rank: number;

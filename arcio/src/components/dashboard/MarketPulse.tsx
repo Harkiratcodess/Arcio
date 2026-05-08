@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
+import { API_URL } from '../../config/api';
 
-const API = 'http://localhost:5000/api';
+const API = API_URL;
 
 interface Skill {
   skill: string;
