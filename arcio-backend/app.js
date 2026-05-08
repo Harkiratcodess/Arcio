@@ -3,7 +3,7 @@ const cors = require('cors')
 const helmet = require('helmet')
 const morgan = require('morgan')
 const { errorHandler } = require('./src/middleware/errorHandler')
-const { apiLimiter } = require('./src/middleware/rateLimiter')
+const { apiLimiter } = require('./src/middleware/ratelimiter')
 const logger = require('./src/utils/logger')
 
 const app = express()
