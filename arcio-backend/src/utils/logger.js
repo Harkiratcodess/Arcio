@@ -14,10 +14,9 @@ const logger = winston.createLogger({
   ],
 });
 
-if (process.env.NODE_ENV !== 'production') {
-  logger.add(new winston.transports.Console({
-    format: winston.format.simple(),
-  }));
-}
+// Always add console transport so logs are visible in Render/Local dashboard
+logger.add(new winston.transports.Console({
+  format: winston.format.simple(),
+}));
 
 module.exports = logger;
