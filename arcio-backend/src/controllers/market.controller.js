@@ -34,9 +34,18 @@ const getAllSkills = async (req, res, next) => {
       .sort({ demand: -1 })
       .limit(50)
 
+    const formattedSkills = skills.map(s => ({
+      skill: s.skill,
+      demand: s.demand,
+      trend: s.trend,
+      salary: s.salary ? `$${Math.round(s.salary.min / 1000)}k - $${Math.round(s.salary.max / 1000)}k+` : 'Contact for salary',
+      jobVolume: s.jobCount?.total || 0,
+      recentGrowth: 0
+    }))
+
     res.status(200).json({
       success: true,
-      data: skills
+      data: formattedSkills
     })
   } catch (error) {
     next(error)

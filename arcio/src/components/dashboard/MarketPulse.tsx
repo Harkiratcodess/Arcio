@@ -60,8 +60,8 @@ const MarketPulse: React.FC = () => {
     );
   }
 
-  const risingTalent = skills.filter(s => s.trend === 'rising').slice(0, 5);
-  const marketCorrections = skills.filter(s => s.trend !== 'rising').slice(0, 5);
+  const risingTalent = Array.isArray(skills) ? skills.filter(s => s && s.trend === 'rising').slice(0, 5) : [];
+  const marketCorrections = Array.isArray(skills) ? skills.filter(s => s && s.trend !== 'rising').slice(0, 5) : [];
 
   return (
     <div className="flex flex-col h-full animate-fade-in-up font-sans">
