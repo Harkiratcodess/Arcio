@@ -42,6 +42,7 @@ app.use('/api/ideas', require('./src/routes/ideas.routes'))
 app.use('/api/market', require('./src/routes/market.routes'))
 app.use('/api/leaderboard', require('./src/routes/leaderboard.routes'))
 app.use('/api/jobs', require('./src/routes/jobs.routes'))
+app.use('/api/community', require('./src/routes/community.routes'))
 
 app.use(errorHandler)
 

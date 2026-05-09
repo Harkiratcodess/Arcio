@@ -2,6 +2,7 @@ const MarketData = require('../models/marketData.model')
 const User = require('../models/user.model')
 const { getCache, setCache } = require('../utils/cache')
 const logger = require('../utils/logger')
+const { fetchMarketTrends } = require('../services/marketData.service')
 
 // Get all skills with demand scores
 const getAllSkills = async (req, res, next) => {
@@ -9,7 +10,7 @@ const getAllSkills = async (req, res, next) => {
     const cacheKey = 'market:all-skills'
     const cached = await getCache(cacheKey)
     
-    if (cached) {
+    if (cached && !req.query.refresh) {
       return res.status(200).json({
         success: true,
         data: cached,
@@ -17,11 +18,21 @@ const getAllSkills = async (req, res, next) => {
       })
     }
 
+    // Try to fetch real data
+    const realData = await fetchMarketTrends()
+    
+    if (realData) {
+      await setCache(cacheKey, realData, 3600 * 6) // Cache for 6 hours
+      return res.status(200).json({
+        success: true,
+        data: realData
+      })
+    }
+
+    // Fallback to DB if GitHub fails
     const skills = await MarketData.find()
       .sort({ demand: -1 })
       .limit(50)
-
-    await setCache(cacheKey, skills.map(s => s.toObject()), 3600) // 1 hour
 
     res.status(200).json({
       success: true,

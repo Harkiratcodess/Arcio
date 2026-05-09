@@ -5,6 +5,7 @@ const { AppError } = require('../middleware/errorHandler')
 const { incrementUsage, PLAN_LIMITS } = require('../middleware/usageLimit')
 const Analysis = require('../models/analysis.model')
 const User = require('../models/user.model')
+const { logActivity } = require('./activity.controller')
 const logger = require('../utils/logger')
 
 const parseGitHubUrl = (url) => {
@@ -425,6 +426,17 @@ Respond ONLY in this exact JSON format:
       })
 
       await incrementUsage(user, req.redisKey)
+
+      // Log Activity for Community Feed
+      await logActivity({
+        userId: user.clerkId,
+        userName: user.name,
+        userAvatar: user.avatar,
+        type: 'analysis',
+        repoName: repo,
+        repoFullName: `${owner}/${repo}`,
+        score: overallScore
+      })
     }
 
     logger.info(`Analysis complete and saved for ${owner}/${repo} — score: ${overallScore}`)
