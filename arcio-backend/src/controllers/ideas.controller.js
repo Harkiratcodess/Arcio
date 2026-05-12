@@ -6,7 +6,7 @@ exports.getIdeas = async (req, res) => {
   try {
     const { category, difficulty, q } = req.query
     let query = {}
-    
+
     if (category) query.categoryTags = { $in: [category] }
     if (difficulty) query.difficulty = difficulty
     if (q) {
@@ -18,7 +18,7 @@ exports.getIdeas = async (req, res) => {
     }
 
     const ideas = await Idea.find(query).sort({ importanceScore: -1 }).limit(20)
-    
+
     res.json({
       success: true,
       data: ideas
@@ -32,7 +32,7 @@ exports.getIdeas = async (req, res) => {
 exports.ideaBuilder = async (req, res) => {
   try {
     const { ideaId, message, chatHistory } = req.body
-    
+
     const selectedIdea = await Idea.findById(ideaId)
     if (!selectedIdea) {
       return res.status(404).json({ success: false, message: 'Idea not found' })
@@ -86,11 +86,10 @@ exports.triggerScraper = async (req, res) => {
   try {
     const { runIdeaScraper } = require('../jobs/ideas.scraper')
     const result = await runIdeaScraper()
-    
+
     res.json({
       success: true,
       message: 'Scraper triggered successfully',
-      details: result
     })
   } catch (error) {
     logger.error(`Manual scraper trigger failed: ${error.message}`)
