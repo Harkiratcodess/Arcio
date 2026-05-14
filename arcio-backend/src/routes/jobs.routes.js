@@ -1,27 +1,49 @@
 const express = require('express')
 const router = express.Router()
 const { runIdeaScraper } = require('../jobs/ideas.scraper')
+const { runMarketScraper } = require('../jobs/market.scraper')
+const { runCommunityTask } = require('../jobs/community.task')
 const logger = require('../utils/logger')
 
-router.get('/trigger-scraper', async (req, res) => {
+// Utility to verify secret
+const verifySecret = (req, res, next) => {
   const { secret } = req.query
-
   if (secret !== process.env.CRON_SECRET) {
-    logger.warn(`Unauthorized scraper trigger attempt from ${req.ip}`)
+    logger.warn(`Unauthorized trigger attempt from ${req.ip}`)
     return res.status(401).json({ success: false, message: 'Unauthorized' })
   }
+  next()
+}
 
-  logger.info('Scraper triggered via external webhook')
+router.get('/trigger-scraper', verifySecret, async (req, res) => {
+  logger.info('Idea scraper triggered via external webhook')
   
-  // We run it in the background so the request doesn't timeout
   runIdeaScraper()
-    .then(result => logger.info(`External scraper run finished: ${JSON.stringify(result)}`))
-    .catch(err => logger.error(`External scraper run failed: ${err.message}`))
+    .then(result => logger.info(`Idea scraper finished: ${result.count || 0} new ideas`))
+    .catch(err => logger.error(`Idea scraper failed: ${err.message}`))
 
-  res.json({ 
-    success: true, 
-    message: 'Scraper pipeline initiated in background' 
-  })
+  res.json({ success: true, message: 'Idea scraper pipeline initiated' })
+})
+
+router.get('/trigger-market', verifySecret, async (req, res) => {
+  logger.info('Market scraper triggered via external webhook')
+  
+  runMarketScraper()
+    .then(result => logger.info(`Market scraper finished: ${result.skillsCount || 0} skills, ${result.newsCount || 0} news`))
+    .catch(err => logger.error(`Market scraper failed: ${err.message}`))
+
+  res.json({ success: true, message: 'Market data scraper initiated' })
+})
+
+router.get('/trigger-community', verifySecret, async (req, res) => {
+  logger.info('Community task triggered via external webhook')
+  
+  runCommunityTask()
+    .then(result => logger.info(`Community task finished`))
+    .catch(err => logger.error(`Community task failed: ${err.message}`))
+
+  res.json({ success: true, message: 'Community maintenance task initiated' })
 })
 
 module.exports = router
+

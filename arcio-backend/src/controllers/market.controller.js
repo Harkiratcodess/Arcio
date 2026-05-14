@@ -2,7 +2,7 @@ const MarketData = require('../models/marketData.model')
 const User = require('../models/user.model')
 const { getCache, setCache } = require('../utils/cache')
 const logger = require('../utils/logger')
-const { fetchMarketTrends } = require('../services/marketData.service')
+const { fetchMarketTrends, fetchMarketNews } = require('../services/marketData.service')
 
 // Get all skills with demand scores
 const getAllSkills = async (req, res, next) => {
@@ -18,7 +18,7 @@ const getAllSkills = async (req, res, next) => {
       })
     }
 
-    // Try to fetch real data
+    // Fetch curated real Indian market data
     const realData = await fetchMarketTrends()
     
     if (realData) {
@@ -29,7 +29,7 @@ const getAllSkills = async (req, res, next) => {
       })
     }
 
-    // Fallback to DB if GitHub fails
+    // Fallback to DB if curated data somehow fails
     const skills = await MarketData.find()
       .sort({ demand: -1 })
       .limit(50)
@@ -38,14 +38,42 @@ const getAllSkills = async (req, res, next) => {
       skill: s.skill,
       demand: s.demand,
       trend: s.trend,
-      salary: s.salary ? `$${Math.round(s.salary.min / 1000)}k - $${Math.round(s.salary.max / 1000)}k+` : 'Contact for salary',
+      trendPercent: s.trendPercent || 0,
+      salary: s.salary ? `₹${s.salary.min}L – ₹${s.salary.max}L` : 'Contact for salary',
       jobVolume: s.jobCount?.total || 0,
-      recentGrowth: 0
+      recentGrowth: 0,
+      category: s.categoryTags?.[0] || 'General'
     }))
 
     res.status(200).json({
       success: true,
       data: formattedSkills
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
+// Get curated Indian tech market news
+const getMarketNews = async (req, res, next) => {
+  try {
+    const cacheKey = 'market:news'
+    const cached = await getCache(cacheKey)
+
+    if (cached && !req.query.refresh) {
+      return res.status(200).json({
+        success: true,
+        data: cached,
+        cached: true
+      })
+    }
+
+    const news = await fetchMarketNews()
+    await setCache(cacheKey, news, 3600 * 2) // Cache for 2 hours
+
+    res.status(200).json({
+      success: true,
+      data: news
     })
   } catch (error) {
     next(error)
@@ -142,4 +170,4 @@ const calculatePercentile = (demand, allSkills) => {
   return Math.round((below / allSkills.length) * 100)
 }
 
-module.exports = { getAllSkills, getUserMarketAnalysis, getSkillDetails }
+module.exports = { getAllSkills, getUserMarketAnalysis, getSkillDetails, getMarketNews }

@@ -315,6 +315,11 @@ Respond ONLY in this exact JSON format:
 {
   "codeQualityScore": 75,
   "summary": "3-4 sentences of gritty, honest technical assessment.",
+  "metrics": {
+    "maintainability": { "score": 85, "desc": "Specific assessment of modularity and ease of change." },
+    "complexity": { "score": 60, "desc": "Assessment of cognitive load, nesting, and function size." },
+    "security": { "score": 90, "desc": "Assessment of dependency risks, input sanitization, and secrets." }
+  },
   "improvements": [
     {
       "title": "Specific Technical Title",
@@ -338,7 +343,12 @@ Respond ONLY in this exact JSON format:
       aiData = {
         codeQualityScore: 70,
         improvements: [],
-        summary: aiResponse
+        summary: aiResponse,
+        metrics: {
+          maintainability: { score: 70, desc: "Standard maintainability metrics applied." },
+          complexity: { score: 70, desc: "Standard complexity analysis applied." },
+          security: { score: 70, desc: "Basic security scanning completed." }
+        }
       }
     }
 
@@ -371,6 +381,7 @@ Respond ONLY in this exact JSON format:
       },
       structureIssues,
       improvements: aiData.improvements,
+      metrics: aiData.metrics,
       fileReviews: aiData.fileReviews || [],
       filesAnalyzed: allFilesToAnalyze.length,
       summary: aiData.summary,
