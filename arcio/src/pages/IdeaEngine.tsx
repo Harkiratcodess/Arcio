@@ -63,6 +63,9 @@ const IdeaEngine: React.FC = () => {
   const [diffFilter, setDiffFilter] = useState('Any Level');
   const [sortBy, setSortBy] = useState<'newest' | 'trending'>('newest');
 
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
   useEffect(() => {
     const query = new URLSearchParams(location.search);
     const skillParam = query.get('skill');
@@ -71,18 +74,21 @@ const IdeaEngine: React.FC = () => {
     if (skillParam) {
       setStackFilter(skillParam);
     }
-    fetchIdeas(searchParam || '');
-  }, [location.search]);
+    fetchIdeas(searchParam || '', page);
+  }, [location.search, page]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
 
-  const fetchIdeas = async (searchQuery = '') => {
+  const fetchIdeas = async (searchQuery = '', pageNum = 1) => {
+    setLoading(true);
     try {
       const token = await getToken();
       const url = new URL(`${API}/ideas`);
       if (searchQuery) url.searchParams.set('q', searchQuery);
+      url.searchParams.set('page', pageNum.toString());
+      url.searchParams.set('limit', '10');
       
       const res = await fetch(url.toString(), {
         headers: { Authorization: `Bearer ${token}` }
@@ -92,9 +98,10 @@ const IdeaEngine: React.FC = () => {
         const enrichedIdeas = data.data.map((idea: any) => ({
           ...idea,
           features: idea.features || ['Modular Architecture', 'Scalable Backend', 'Clean Patterns'],
-          demandScore: idea.demandScore || Math.floor(Math.random() * 40) + 60 // Mock demand for trending sort
+          demandScore: idea.demandScore || Math.floor(Math.random() * 40) + 60
         }));
         setIdeas(enrichedIdeas);
+        setTotalPages(data.pagination?.pages || 1);
       } else {
         setIdeas([]);
       }
@@ -329,50 +336,85 @@ const IdeaEngine: React.FC = () => {
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-            {filteredIdeas.map((idea) => (
-              <div key={idea._id} className="premium-card p-10 flex flex-col h-full bg-gradient-to-br from-white to-stone-50 relative overflow-hidden group">
-                {sortBy === 'trending' && (
-                   <div className="absolute top-0 right-0 p-4 z-20">
-                    <span className="px-2 py-1 bg-teal-500 text-stone-900 text-[9px] font-black uppercase tracking-widest rounded shadow-lg">Trending</span>
-                   </div>
-                )}
-                <div className="flex justify-between items-start mb-8 relative z-10">
-                  <div className="flex gap-2">
-                    {(idea.stack || []).slice(0, 2).map(s => (
-                      <span key={s} className="px-3 py-1 bg-stone-50 border border-stone-200 rounded text-[10px] font-bold text-stone-500">{s}</span>
-                    ))}
+          <div className="space-y-12 pb-20">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+              {filteredIdeas.map((idea) => (
+                <div key={idea._id} className="premium-card p-10 flex flex-col h-full bg-gradient-to-br from-white to-stone-50 relative overflow-hidden group">
+                  {sortBy === 'trending' && (
+                     <div className="absolute top-0 right-0 p-4 z-20">
+                      <span className="px-2 py-1 bg-teal-500 text-stone-900 text-[9px] font-black uppercase tracking-widest rounded shadow-lg">Trending</span>
+                     </div>
+                  )}
+                  <div className="flex justify-between items-start mb-8 relative z-10">
+                    <div className="flex gap-2">
+                      {(idea.stack || []).slice(0, 2).map(s => (
+                        <span key={s} className="px-3 py-1 bg-stone-50 border border-stone-200 rounded text-[10px] font-bold text-stone-500">{s}</span>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-2 px-3 py-1 bg-stone-50/50 border border-stone-200 rounded text-[10px] font-bold text-stone-500">
+                      <svg className="w-3.5 h-3.5 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      {idea.timeToComplete}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 px-3 py-1 bg-stone-50/50 border border-stone-200 rounded text-[10px] font-bold text-stone-500">
-                    <svg className="w-3.5 h-3.5 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    {idea.timeToComplete}
-                  </div>
-                </div>
 
-                <div className="flex-1 space-y-6 relative z-10">
-                  <h2 className="text-4xl font-serif italic text-stone-900 leading-tight">{idea.title}</h2>
-                  <p className="text-stone-500 text-sm leading-relaxed font-medium line-clamp-3">
-                    {idea.description}
-                  </p>
-                  
-                  <div className="grid grid-cols-2 gap-4 py-8 border-t border-stone-200/50 mt-auto">
-                    {idea.features?.map((f, i) => (
-                      <div key={i} className="flex items-center gap-3">
-                        <svg className="w-4 h-4 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                        <span className="text-xs font-bold text-stone-700">{f}</span>
-                      </div>
-                    ))}
+                  <div className="flex-1 space-y-6 relative z-10">
+                    <h2 className="text-4xl font-serif italic text-stone-900 leading-tight">{idea.title}</h2>
+                    <p className="text-stone-500 text-sm leading-relaxed font-medium line-clamp-3">
+                      {idea.description}
+                    </p>
+                    
+                    <div className="grid grid-cols-2 gap-4 py-8 border-t border-stone-200/50 mt-auto">
+                      {idea.features?.map((f, i) => (
+                        <div key={i} className="flex items-center gap-3">
+                          <svg className="w-4 h-4 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                          <span className="text-xs font-bold text-stone-700">{f}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
 
-                <button 
-                  onClick={() => handleSelectIdea(idea)}
-                  className="w-full mt-8 bg-teal-500 text-stone-900 py-4 rounded-xl text-[11px] font-black uppercase tracking-[0.2em] transition-all active:scale-[0.98] flex items-center justify-center gap-2"
-                >
-                  Build Blueprint <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-                </button>
+                  <button 
+                    onClick={() => handleSelectIdea(idea)}
+                    className="w-full mt-8 bg-teal-500 text-stone-900 py-4 rounded-xl text-[11px] font-black uppercase tracking-[0.2em] transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                  >
+                    Build Blueprint <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* Pagination Controls */}
+            <div className="flex items-center justify-center gap-6 pt-12 border-t border-stone-100">
+              <button 
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-stone-400 hover:text-stone-900 disabled:opacity-30 disabled:pointer-events-none transition-all"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+                Previous
+              </button>
+              
+              <div className="flex items-center gap-3">
+                {[...Array(totalPages)].map((_, i) => (
+                  <button 
+                    key={i}
+                    onClick={() => setPage(i + 1)}
+                    className={`w-8 h-8 rounded-full text-[10px] font-black transition-all ${page === i + 1 ? 'bg-stone-900 text-white' : 'text-stone-400 hover:text-stone-900 hover:bg-stone-100'}`}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
               </div>
-            ))}
+
+              <button 
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-stone-400 hover:text-stone-900 disabled:opacity-30 disabled:pointer-events-none transition-all"
+              >
+                Next
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+              </button>
+            </div>
           </div>
         )}
       </div>

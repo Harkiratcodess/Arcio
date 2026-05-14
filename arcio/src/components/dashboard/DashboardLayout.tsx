@@ -90,26 +90,32 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
         <header className="h-16 flex items-center justify-between px-8 border-b border-stone-100 bg-white z-10 shrink-0">
           
           <div className="flex items-center gap-4 flex-1">
-             <div className="hidden md:flex relative max-w-md w-full">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg className="h-4 w-4 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+             {location.pathname === '/ideas' && (
+               <div className="hidden md:flex relative max-w-md w-full animate-fade-in">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg className="h-4 w-4 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                </div>
+                <input 
+                  type="text" 
+                  placeholder="Search architectures..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={handleSearch}
+                  className="block w-full pl-9 pr-3 py-1.5 border border-stone-200 rounded-full text-sm bg-stone-50 text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-1 focus:ring-stone-300 transition-all" 
+                />
               </div>
-              <input 
-                type="text" 
-                placeholder="Search architectures..." 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={handleSearch}
-                className="block w-full pl-9 pr-3 py-1.5 border border-stone-200 rounded-full text-sm bg-stone-50 text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-1 focus:ring-stone-300" 
-              />
-            </div>
+             )}
           </div>
 
           <div className="flex items-center gap-4">
-            <span className="text-sm font-semibold text-stone-900 hidden md:block">Idea Engine</span>
-            <button className="px-4 py-1.5 bg-teal-800 hover:bg-teal-900 text-white text-sm font-semibold rounded-full shadow-sm">
-              New Idea
-            </button>
+            <span className="text-sm font-semibold text-stone-900 hidden md:block">
+              {navItems.find(i => location.pathname.includes(i.path))?.name || 'Dashboard'}
+            </span>
+            {location.pathname === '/ideas' && (
+              <button className="px-4 py-1.5 bg-teal-800 hover:bg-teal-900 text-white text-sm font-semibold rounded-full shadow-sm animate-fade-in">
+                New Idea
+              </button>
+            )}
           </div>
 
         </header>

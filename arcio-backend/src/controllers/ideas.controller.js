@@ -4,7 +4,8 @@ const logger = require('../utils/logger')
 
 exports.getIdeas = async (req, res) => {
   try {
-    const { category, difficulty, q } = req.query
+    const { category, difficulty, q, page = 1, limit = 12 } = req.query
+    const skip = (page - 1) * limit
     let query = {}
 
     if (category) query.categoryTags = { $in: [category] }
@@ -17,11 +18,23 @@ exports.getIdeas = async (req, res) => {
       ]
     }
 
-    const ideas = await Idea.find(query).sort({ importanceScore: -1 }).limit(20)
+    // Shuffle logic: Newest first, but also keep importanceScore as secondary sort
+    const ideas = await Idea.find(query)
+      .sort({ createdAt: -1, importanceScore: -1 })
+      .skip(skip)
+      .limit(parseInt(limit))
+
+    const total = await Idea.countDocuments(query)
 
     res.json({
       success: true,
-      data: ideas
+      data: ideas,
+      pagination: {
+        total,
+        page: parseInt(page),
+        pages: Math.ceil(total / limit),
+        hasMore: skip + ideas.length < total
+      }
     })
   } catch (error) {
     logger.error(`Error fetching ideas: ${error.message}`)
