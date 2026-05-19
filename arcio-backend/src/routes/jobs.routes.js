@@ -18,40 +18,31 @@ const verifySecret = (req, res, next) => {
 router.get('/trigger-scraper', verifySecret, (req, res) => {
   logger.info('Idea scraper triggered via external webhook')
   
+  res.status(200).end()
+
   runIdeaScraper()
     .then(result => logger.info(`Idea scraper finished: ${result?.count || 0} new ideas`))
     .catch(err => logger.error(`Idea scraper failed: ${err.message}`))
-
-  const responseBody = JSON.stringify({ success: true, message: 'Idea scraper pipeline initiated' })
-  res.set('Connection', 'close')
-  res.set('Content-Length', Buffer.byteLength(responseBody))
-  res.status(200).type('json').send(responseBody)
 })
 
 router.get('/trigger-market', verifySecret, (req, res) => {
   logger.info('Market scraper triggered via external webhook')
   
+  res.status(200).end()
+
   runMarketScraper()
     .then(result => logger.info(`Market scraper finished: ${result?.skillsCount || 0} skills, ${result?.newsCount || 0} news`))
     .catch(err => logger.error(`Market scraper failed: ${err.message}`))
-
-  const responseBody = JSON.stringify({ success: true, message: 'Market data scraper initiated' })
-  res.set('Connection', 'close')
-  res.set('Content-Length', Buffer.byteLength(responseBody))
-  res.status(200).type('json').send(responseBody)
 })
 
 router.get('/trigger-community', verifySecret, (req, res) => {
   logger.info('Community task triggered via external webhook')
   
+  res.status(200).end()
+
   runCommunityTask()
     .then(result => logger.info(`Community task finished`))
     .catch(err => logger.error(`Community task failed: ${err.message}`))
-
-  const responseBody = JSON.stringify({ success: true, message: 'Community maintenance task initiated' })
-  res.set('Connection', 'close')
-  res.set('Content-Length', Buffer.byteLength(responseBody))
-  res.status(200).type('json').send(responseBody)
 })
 
 module.exports = router
