@@ -34,7 +34,7 @@ const getGlobalLeaderboard = async (req, res, next) => {
       percentile: totalUsers > 0 ? Math.round(((totalUsers - index) / totalUsers) * 100) : 100
     }))
 
-    await setCache(cacheKey, leaderboard, 3600) // 1 hour
+    await setCache(cacheKey, leaderboard, 3600) 
 
     res.status(200).json({
       success: true,

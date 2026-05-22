@@ -80,21 +80,17 @@ const getMarketNews = async (req, res, next) => {
   }
 }
 
-// Get market analysis for logged-in user
 const getUserMarketAnalysis = async (req, res, next) => {
   try {
     const { userId } = req
 
-    // Get user's tech stack
     const user = await User.findOne({ clerkId: userId })
     if (!user) return next(new AppError('User not found', 404))
 
     const userStack = user.profile?.techStack || []
 
-    // Get all skills
     const allSkills = await MarketData.find().sort({ demand: -1 })
 
-    // Categorize user's skills vs market
     const userSkillsData = []
     const recommendedSkills = []
 
@@ -110,7 +106,6 @@ const getUserMarketAnalysis = async (req, res, next) => {
           marketPercentile: calculatePercentile(skill.demand, allSkills)
         })
       } else {
-        // Recommend high-demand skills they don't have
         if (skill.demand >= 80) {
           recommendedSkills.push({
             skill: skill.skill,
