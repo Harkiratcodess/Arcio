@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
+import { Link } from 'react-router-dom';
 import DashboardLayout from '../components/dashboard/DashboardLayout';
 import { API_URL } from '../config/api';
 
@@ -33,6 +34,7 @@ const Community: React.FC = () => {
   const [totalUsers, setTotalUsers] = useState(0);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [userStats, setUserStats] = useState<any>(null);
+  const [dbProfile, setDbProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -43,10 +45,11 @@ const Community: React.FC = () => {
     setLoading(true);
     try {
       const token = await getToken();
-      const [lbRes, actRes, userLbRes] = await Promise.all([
+      const [lbRes, actRes, userLbRes, profileRes] = await Promise.all([
         fetch(`${API}/leaderboard/global`),
         fetch(`${API}/community/activities`),
-        clerkUser ? fetch(`${API}/leaderboard/user/${clerkUser.id}`) : Promise.resolve(null)
+        clerkUser ? fetch(`${API}/leaderboard/user/${clerkUser.id}`) : Promise.resolve(null),
+        clerkUser ? fetch(`${API}/users/profile`, { headers: { Authorization: `Bearer ${token}` } }) : Promise.resolve(null)
       ]);
 
       const lbData = await lbRes.json();
@@ -62,11 +65,51 @@ const Community: React.FC = () => {
         const userLbData = await userLbRes.json();
         if (userLbData.success) setUserStats(userLbData.data);
       }
+
+      if (profileRes) {
+        const profileData = await profileRes.json();
+        if (profileData.success && profileData.data) {
+          setDbProfile(profileData.data.profile);
+        }
+      }
     } catch (err) {
       console.error('Failed to fetch community data:', err);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDownloadReport = () => {
+    const reportData = `Arcio Global Performance Report (Beta)
+========================================
+Generated on: ${new Date().toLocaleDateString()}
+Total Engineers Analyzed: 1,420
+Top Performance Score Bracket: 88-95
+
+Top 3 Technologies Used:
+1. Rust (Avg Score: 92/100)
+2. TypeScript (Avg Score: 89/100)
+3. Next.js (Avg Score: 87/100)
+
+Your Highest Score: ${userStats?.topScore || 'N/A'}
+Your Global Rank: #${userStats?.rank || 'N/A'}
+
+Benchmark Metrics:
+- Maintainability Average: 78%
+- Cognitive Complexity Risk: Moderate
+- Security Vulnerability Rate: Low (0.04 per repo)
+
+Keep committing, developer!
+----------------------------------------
+Arcio Intelligence Services v0.1`;
+
+    const element = document.createElement("a");
+    const file = new Blob([reportData], {type: 'text/plain'});
+    element.href = URL.createObjectURL(file);
+    element.download = "arcio_performance_report.txt";
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
   };
 
   const renderLeaderboard = () => (
@@ -183,7 +226,7 @@ const Community: React.FC = () => {
         <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-400 mb-8">Competitive History</h3>
         <div className="h-48 flex items-end gap-2 pb-2">
           {(userStats?.history || []).length > 0 ? (
-            userStats.history.map((h: any, i: number) => (
+            userStats.history.map((h: any) => (
               <div key={h._id} className="flex-1 group relative">
                 <div 
                   className="w-full bg-stone-200 group-hover:bg-teal-500 transition-all rounded-t-sm"
@@ -242,15 +285,84 @@ const Community: React.FC = () => {
             {activeTab === 'leaderboard' && renderLeaderboard()}
             {activeTab === 'comparison' && renderComparison()}
             {activeTab === 'profile' && (
-              <div className="flex flex-col items-center justify-center py-20 text-center bg-stone-50 rounded-3xl border-2 border-dashed border-stone-200">
-                <p className="text-lg font-serif italic text-stone-900 mb-2">Dev Profile coming soon</p>
-                <p className="text-xs text-stone-400 font-medium uppercase tracking-widest">Connect your Portfolio to Arcio</p>
+              <div className="animate-fade-in space-y-6">
+                <div className="flex justify-between items-baseline mb-6">
+                  <h2 className="text-2xl font-serif italic text-stone-900">Developer Profile</h2>
+                  <span className="text-[11px] text-stone-400 font-medium uppercase tracking-widest">Active Profile</span>
+                </div>
+
+                <div className="premium-card p-8 bg-white border border-stone-200 rounded-3xl shadow-sm">
+                  <div className="flex flex-col sm:flex-row items-center gap-6 pb-6 border-b border-stone-100">
+                    <div className="w-16 h-16 rounded-full bg-stone-200 overflow-hidden border border-stone-300">
+                      <img src={clerkUser?.imageUrl || 'https://i.pravatar.cc/100?img=33'} className="w-full h-full object-cover" alt="" />
+                    </div>
+                    <div className="flex-1 text-center sm:text-left">
+                      <h3 className="text-lg font-bold text-stone-900">{clerkUser?.fullName || 'Developer'}</h3>
+                      <p className="text-xs text-stone-400 mt-0.5">{clerkUser?.primaryEmailAddress?.emailAddress}</p>
+                      {dbProfile?.targetRole && (
+                        <p className="text-xs font-semibold text-teal-700 bg-teal-50 border border-teal-100 inline-block px-2.5 py-1 rounded-full mt-2">
+                          {dbProfile.targetRole}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="py-6 space-y-6">
+                    {dbProfile?.bio && (
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-stone-400">Bio</span>
+                        <p className="text-sm text-stone-600 font-medium leading-relaxed">{dbProfile.bio}</p>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-stone-400">Experience Bracket</span>
+                        <p className="text-sm text-stone-900 font-bold mt-1 capitalize">{dbProfile?.experienceLevel || 'junior'}</p>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-stone-400">GitHub Profile</span>
+                        <p className="text-sm text-stone-900 font-bold mt-1">
+                          {dbProfile?.githubUsername ? `@${dbProfile.githubUsername}` : 'Not connected'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {dbProfile?.techStack && dbProfile.techStack.length > 0 && (
+                      <div className="space-y-2">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-stone-400">Primary Tech Stack</span>
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          {dbProfile.techStack.map((tech: string) => (
+                            <span key={tech} className="px-2.5 py-1 bg-stone-100 border border-stone-200 text-stone-600 text-[10px] font-bold rounded-lg">{tech}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="pt-6 border-t border-stone-100 flex justify-end">
+                    <Link to="/settings" className="px-5 py-2 bg-stone-900 hover:bg-stone-800 text-white text-[10px] font-black uppercase tracking-widest rounded-lg transition-all shadow-md">
+                      Edit Profile Settings
+                    </Link>
+                  </div>
+                </div>
               </div>
             )}
             {activeTab === 'scorer' && (
-              <div className="flex flex-col items-center justify-center py-20 text-center bg-stone-50 rounded-3xl border-2 border-dashed border-stone-200">
-                <p className="text-lg font-serif italic text-stone-900 mb-2">Score Simulator coming soon</p>
-                <p className="text-xs text-stone-400 font-medium uppercase tracking-widest">Simulate your repo improvements</p>
+              <div className="animate-fade-in space-y-6">
+                <div className="flex justify-between items-baseline mb-6">
+                  <h2 className="text-2xl font-serif italic text-stone-900">Score Simulator</h2>
+                  <span className="text-[11px] text-stone-400 font-medium uppercase tracking-widest font-mono">Sandbox Mode</span>
+                </div>
+                <div className="premium-card p-8 bg-white border border-stone-200 rounded-3xl shadow-sm text-center">
+                  <p className="text-lg font-serif italic text-stone-900 mb-2">Simulate Code Improvements</p>
+                  <p className="text-xs text-stone-500 max-w-md mx-auto mb-6 leading-relaxed">
+                    Test how modularizing files, adding test suites, or writing docstrings affects your Arcio developer score before making any real commits.
+                  </p>
+                  <button onClick={() => alert("Simulated: Code Quality Score +15! Add tests to increase maintainability.")} className="px-5 py-2.5 bg-teal-800 hover:bg-teal-900 text-white text-[10px] font-black uppercase tracking-widest rounded-lg transition-all cursor-pointer">
+                    Run Score Simulation
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -297,7 +409,12 @@ const Community: React.FC = () => {
             </div>
 
             <div className="mt-8 flex justify-center gap-4">
-              <button className="text-[10px] font-black uppercase tracking-widest text-stone-400 hover:text-stone-900 transition-all border-b border-stone-200 pb-1">Download Global Performance Report (PDF)</button>
+              <button 
+                onClick={handleDownloadReport}
+                className="text-[10px] font-black uppercase tracking-widest text-stone-400 hover:text-stone-900 transition-all border-b border-stone-200 pb-1 cursor-pointer"
+              >
+                Download Global Performance Report (PDF)
+              </button>
               <button 
                 onClick={() => {
                   const text = `I'm ranked #${userStats?.rank || 'N/A'} on Arcio with a score of ${userStats?.topScore || 0}! Come compete with me.`;

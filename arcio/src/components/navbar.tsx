@@ -28,10 +28,9 @@ const Navbar: React.FC = () => {
   }, [mobileOpen]);
 
   const navLinks = [
-    { label: "Features", to: "#features" },
-    { label: "HowItWorks", to: "#how" },
+    { label: "Features", to: "/#features" },
+    { label: "How it Works", to: "/#how" },
     { label: "Changelog", to: "/community" },
-    { label: "Blog", to: "/blog" },
   ];
 
   return (
@@ -113,7 +112,7 @@ const Navbar: React.FC = () => {
 ))}
             <div className="pt-2 mt-1 border-t border-stone-100 space-y-1">
               <Link to="/login" onClick={() => setMobileOpen(false)} className="block px-3 py-2 rounded-md text-[13px] font-medium text-stone-600">Log in</Link>
-              <Link to="/get-started" onClick={() => setMobileOpen(false)} className="block px-3 py-2 rounded-md text-[13px] font-medium text-center text-white bg-stone-900">Get Started</Link>
+              <Link to="/signup" onClick={() => setMobileOpen(false)} className="block px-3 py-2 rounded-md text-[13px] font-medium text-center text-white bg-stone-900">Get Started</Link>
             </div>
           </div>
         </div>

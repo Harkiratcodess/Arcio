@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 
 const PortfolioIQHero: React.FC = () => {
   return (
@@ -45,7 +46,7 @@ const PortfolioIQHero: React.FC = () => {
             </div>
 
             <div className="flex flex-col sm:flex-row items-start gap-3">
-              <button className="inline-flex items-center gap-2.5 px-6 py-3.5 text-[15px] font-semibold text-white bg-stone-900 rounded-lg hover:bg-stone-800 active:scale-[0.98] transition-all duration-150 shadow-sm">
+              <Link to="/analyzer" className="inline-flex items-center gap-2.5 px-6 py-3.5 text-[15px] font-semibold text-white bg-stone-900 rounded-lg hover:bg-stone-800 active:scale-[0.98] transition-all duration-150 shadow-sm">
                 Audit My Profile
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -59,10 +60,17 @@ const PortfolioIQHero: React.FC = () => {
                     clipRule="evenodd"
                   />
                 </svg>
-              </button>
-              <button className="inline-flex items-center gap-2.5 px-6 py-3.5 text-[15px] font-semibold text-stone-700 bg-white border border-stone-200 rounded-lg hover:border-stone-300 hover:bg-stone-50 active:scale-[0.98] transition-all duration-150">
+              </Link>
+              <a 
+                href="#how" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  document.getElementById('how')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="inline-flex items-center gap-2.5 px-6 py-3.5 text-[15px] font-semibold text-stone-700 bg-white border border-stone-200 rounded-lg hover:border-stone-300 hover:bg-stone-50 active:scale-[0.98] transition-all duration-150"
+              >
                 See How It Works
-              </button>
+              </a>
             </div>
 
             <div className="flex items-center gap-5 text-[12px] text-stone-400 font-medium pt-2">
@@ -90,7 +98,7 @@ const PortfolioIQHero: React.FC = () => {
                 <div className="flex-1 flex justify-center">
                   <div className="px-4 py-1.5 rounded-md bg-white border border-stone-100">
                     <span className="text-[10px] text-stone-400 font-medium">
-                      portfolioiq.dev/dashboard
+                      arcio.dev/dashboard
                     </span>
                   </div>
                 </div>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Routes, Route, Navigate, useNavigate, Link } from "react-router-dom";
 import {
   SignedIn,
@@ -6,6 +6,7 @@ import {
   RedirectToSignIn,
   useSignUp,
   useClerk,
+  useAuth,
 } from "@clerk/clerk-react";
 import Navbar from "./components/navbar";
 import PortfolioIQHero from "./components/Hero";
@@ -24,8 +25,18 @@ import IdeaEngine from "./pages/IdeaEngine";
 import Analyzer from "./pages/Analyzer";
 import Market from "./pages/Market";
 import Community from "./pages/Community";
+import Settings from "./pages/Settings";
 
 function Home() {
+  const { isSignedIn } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isSignedIn) {
+      navigate("/ideas", { replace: true });
+    }
+  }, [isSignedIn, navigate]);
+
   return (
     <div className="min-h-screen bg-slate-50">
       <Navbar />
@@ -247,6 +258,14 @@ function App() {
         element={
           <ProtectedRoute>
             <Community />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <Settings />
           </ProtectedRoute>
         }
       />

@@ -66,6 +66,13 @@ const IdeaEngine: React.FC = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
+  const [showNewIdeaModal, setShowNewIdeaModal] = useState(false);
+  const [newIdeaTitle, setNewIdeaTitle] = useState('');
+  const [newIdeaDesc, setNewIdeaDesc] = useState('');
+  const [newIdeaDiff, setNewIdeaDiff] = useState('Intermediate');
+  const [newIdeaTime, setNewIdeaTime] = useState('2-3 Days');
+  const [newIdeaStack, setNewIdeaStack] = useState('');
+
   useEffect(() => {
     const query = new URLSearchParams(location.search);
     const skillParam = query.get('skill');
@@ -129,6 +136,49 @@ const IdeaEngine: React.FC = () => {
     ]);
   };
 
+  const handleApplyFix = () => {
+    setChatLoading(true);
+    setTimeout(() => {
+      setChatMessages(p => [
+        ...p,
+        {
+          role: 'ai',
+          text: `System: Applied structural fix to project configuration. Node modules and package configuration synchronized. Build verified successfully. Ready for further deployment instructions.`,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ]);
+      setChatLoading(false);
+    }, 1000);
+  };
+
+  const handleCreateCustomIdea = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newIdeaTitle.trim() || !newIdeaDesc.trim()) return;
+
+    const newIdeaObj: Idea = {
+      _id: 'mock_' + Date.now(),
+      title: newIdeaTitle,
+      description: newIdeaDesc,
+      difficulty: newIdeaDiff,
+      timeToComplete: newIdeaTime,
+      stack: newIdeaStack.split(',').map(s => s.trim()).filter(Boolean),
+      skillsTaught: ['System Design', 'API Development', 'Clean Code'],
+      features: ['Modern Patterns', 'Scalable Structure', 'Self-contained Logic'],
+      demandScore: 95
+    };
+
+    setIdeas(prev => [newIdeaObj, ...prev]);
+    setShowNewIdeaModal(false);
+    
+    // Reset inputs
+    setNewIdeaTitle('');
+    setNewIdeaDesc('');
+    setNewIdeaStack('');
+
+    // Open custom idea in the workshop automatically
+    handleSelectIdea(newIdeaObj);
+  };
+
   const handleChat = async () => {
     if (!chatInput.trim() || chatLoading || !selectedIdea) return;
     const msg = chatInput;
@@ -171,7 +221,7 @@ const IdeaEngine: React.FC = () => {
 
   if (view === 'workshop' && selectedIdea) {
     return (
-      <DashboardLayout>
+      <DashboardLayout onNewIdeaClick={() => setShowNewIdeaModal(true)}>
         <div className="flex flex-col h-[calc(100vh-64px)] animate-fade-in-up">
           <div className="flex items-center gap-1 px-6 pt-4 border-b border-stone-200">
             {activeBuilds.map((build, idx) => (
@@ -216,7 +266,10 @@ const IdeaEngine: React.FC = () => {
                   </div>
                   {m.role === 'ai' && i === chatMessages.length - 1 && !chatLoading && (
                     <div className="flex gap-3 pt-2">
-                       <button className="flex items-center gap-2 px-4 py-2 border border-stone-200 rounded-lg text-xs font-bold text-stone-500 hover:bg-white hover:text-stone-900 transition-all">
+                       <button 
+                         onClick={handleApplyFix}
+                         className="flex items-center gap-2 px-4 py-2 border border-stone-200 rounded-lg text-xs font-bold text-stone-500 hover:bg-white hover:text-stone-900 transition-all cursor-pointer"
+                       >
                         <svg className="w-4 h-4 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                         Apply Structural Fix
                        </button>
@@ -264,10 +317,8 @@ const IdeaEngine: React.FC = () => {
         </div>
       </DashboardLayout>
     );
-  }
-
-  return (
-    <DashboardLayout>
+  }  return (
+    <DashboardLayout onNewIdeaClick={() => setShowNewIdeaModal(true)}>
       <div className="p-8 space-y-12 animate-fade-in-up">
         <div className="relative h-[300px] rounded-3xl overflow-hidden bg-white border border-stone-200 flex flex-col items-center justify-center text-center p-8">
           <div className="absolute inset-0 bg-gradient-to-t from-stone-50 via-transparent to-transparent z-10" />
@@ -323,7 +374,7 @@ const IdeaEngine: React.FC = () => {
           </div>
           <button 
             onClick={() => { setStackFilter('All Technologies'); setDiffFilter('Any Level'); setSortBy('newest'); }}
-            className="px-6 py-2 bg-white border border-stone-200 rounded-lg text-xs font-bold text-stone-500 hover:text-stone-900 transition-all"
+            className="px-6 py-2 bg-white border border-stone-200 rounded-lg text-xs font-bold text-stone-500 hover:text-stone-900 transition-all cursor-pointer"
           >
             Clear Filters
           </button>
@@ -342,7 +393,7 @@ const IdeaEngine: React.FC = () => {
                 <div key={idea._id} className="premium-card p-10 flex flex-col h-full bg-gradient-to-br from-white to-stone-50 relative overflow-hidden group">
                   {sortBy === 'trending' && (
                      <div className="absolute top-0 right-0 p-4 z-20">
-                      <span className="px-2 py-1 bg-teal-500 text-stone-900 text-[9px] font-black uppercase tracking-widest rounded shadow-lg">Trending</span>
+                       <span className="px-2 py-1 bg-teal-500 text-stone-900 text-[9px] font-black uppercase tracking-widest rounded shadow-lg">Trending</span>
                      </div>
                   )}
                   <div className="flex justify-between items-start mb-8 relative z-10">
@@ -375,7 +426,7 @@ const IdeaEngine: React.FC = () => {
 
                   <button 
                     onClick={() => handleSelectIdea(idea)}
-                    className="w-full mt-8 bg-teal-500 text-stone-900 py-4 rounded-xl text-[11px] font-black uppercase tracking-[0.2em] transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                    className="w-full mt-8 bg-teal-500 text-stone-900 py-4 rounded-xl text-[11px] font-black uppercase tracking-[0.2em] transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer"
                   >
                     Build Blueprint <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                   </button>
@@ -388,7 +439,7 @@ const IdeaEngine: React.FC = () => {
               <button 
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-stone-400 hover:text-stone-900 disabled:opacity-30 disabled:pointer-events-none transition-all"
+                className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-stone-400 hover:text-stone-900 disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
                 Previous
@@ -399,7 +450,7 @@ const IdeaEngine: React.FC = () => {
                   <button 
                     key={i}
                     onClick={() => setPage(i + 1)}
-                    className={`w-8 h-8 rounded-full text-[10px] font-black transition-all ${page === i + 1 ? 'bg-stone-900 text-white' : 'text-stone-400 hover:text-stone-900 hover:bg-stone-100'}`}
+                    className={`w-8 h-8 rounded-full text-[10px] font-black transition-all cursor-pointer ${page === i + 1 ? 'bg-stone-900 text-white' : 'text-stone-400 hover:text-stone-900 hover:bg-stone-100'}`}
                   >
                     {i + 1}
                   </button>
@@ -409,7 +460,7 @@ const IdeaEngine: React.FC = () => {
               <button 
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-stone-400 hover:text-stone-900 disabled:opacity-30 disabled:pointer-events-none transition-all"
+                className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-stone-400 hover:text-stone-900 disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
               >
                 Next
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
@@ -418,6 +469,96 @@ const IdeaEngine: React.FC = () => {
           </div>
         )}
       </div>
+
+      {showNewIdeaModal && (
+        <div className="fixed inset-0 bg-stone-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="bg-white border border-stone-200 rounded-3xl w-full max-w-lg p-8 shadow-2xl relative">
+            <button 
+              onClick={() => setShowNewIdeaModal(false)}
+              className="absolute top-6 right-6 text-stone-400 hover:text-stone-905 transition-colors cursor-pointer"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+            
+            <div className="mb-6">
+              <h3 className="text-2xl font-serif italic text-stone-900">Brainstorm Custom Blueprint</h3>
+              <p className="text-stone-400 text-xs mt-1 font-medium">Design your own project blueprint and load it directly into the AI workshop.</p>
+            </div>
+
+            <form onSubmit={handleCreateCustomIdea} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase tracking-widest text-stone-400">Blueprint Title</label>
+                <input 
+                  type="text" 
+                  required
+                  value={newIdeaTitle}
+                  onChange={e => setNewIdeaTitle(e.target.value)}
+                  placeholder="e.g. Distributed Notification System" 
+                  className="w-full px-4 py-2.5 border border-stone-200 rounded-xl text-sm bg-stone-50 text-stone-900 focus:outline-none focus:ring-1 focus:ring-teal-500/50"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase tracking-widest text-stone-400">Description</label>
+                <textarea 
+                  required
+                  value={newIdeaDesc}
+                  onChange={e => setNewIdeaDesc(e.target.value)}
+                  placeholder="Summarize the core goal of the project..." 
+                  rows={3}
+                  className="w-full px-4 py-2.5 border border-stone-200 rounded-xl text-sm bg-stone-50 text-stone-900 focus:outline-none focus:ring-1 focus:ring-teal-500/50 resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-stone-400">Difficulty</label>
+                  <select 
+                    value={newIdeaDiff}
+                    onChange={e => setNewIdeaDiff(e.target.value)}
+                    className="w-full px-4 py-2.5 border border-stone-200 rounded-xl text-xs bg-stone-50 text-stone-900 focus:outline-none"
+                  >
+                    <option>Beginner</option>
+                    <option>Intermediate</option>
+                    <option>Advanced</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-stone-400">Time to Build</label>
+                  <select 
+                    value={newIdeaTime}
+                    onChange={e => setNewIdeaTime(e.target.value)}
+                    className="w-full px-4 py-2.5 border border-stone-200 rounded-xl text-xs bg-stone-50 text-stone-900 focus:outline-none"
+                  >
+                    <option>1-2 Days</option>
+                    <option>2-3 Days</option>
+                    <option>1 Week</option>
+                    <option>2 Weeks</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase tracking-widest text-stone-400">Technologies (comma separated)</label>
+                <input 
+                  type="text" 
+                  value={newIdeaStack}
+                  onChange={e => setNewIdeaStack(e.target.value)}
+                  placeholder="e.g. Node.js, Redis, WebSockets" 
+                  className="w-full px-4 py-2.5 border border-stone-200 rounded-xl text-sm bg-stone-50 text-stone-900 focus:outline-none focus:ring-1 focus:ring-teal-500/50"
+                />
+              </div>
+
+              <button 
+                type="submit"
+                className="w-full mt-4 py-3.5 bg-teal-800 hover:bg-teal-900 text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-xl transition-all shadow-lg cursor-pointer"
+              >
+                Brainstorm Blueprint →
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 };

@@ -4,7 +4,12 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import useUserSync from '../../hooks/userSync';
 
 
-const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+interface DashboardLayoutProps {
+  children: React.ReactNode;
+  onNewIdeaClick?: () => void;
+}
+
+const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, onNewIdeaClick }) => {
   useUserSync()
   const { user } = useUser()
   const { signOut } = useClerk()
@@ -112,7 +117,10 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
               {navItems.find(i => location.pathname.includes(i.path))?.name || 'Dashboard'}
             </span>
             {location.pathname === '/ideas' && (
-              <button className="px-4 py-1.5 bg-teal-800 hover:bg-teal-900 text-white text-sm font-semibold rounded-full shadow-sm animate-fade-in">
+              <button 
+                onClick={onNewIdeaClick}
+                className="px-4 py-1.5 bg-teal-800 hover:bg-teal-900 text-white text-sm font-semibold rounded-full shadow-sm animate-fade-in cursor-pointer"
+              >
                 New Idea
               </button>
             )}

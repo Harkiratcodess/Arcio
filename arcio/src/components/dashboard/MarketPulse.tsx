@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@clerk/clerk-react';
 import { API_URL } from '../../config/api';
 
 const API = API_URL;
@@ -28,7 +27,6 @@ interface NewsItem {
 }
 
 const MarketPulse: React.FC = () => {
-  const { getToken } = useAuth();
   const [skills, setSkills] = useState<Skill[]>([]);
   const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
