@@ -383,10 +383,10 @@ const Settings: React.FC = () => {
                           onChange={(e) => setProfile((prev) => ({ ...prev, experienceLevel: e.target.value as any }))}
                           className="w-full px-3.5 py-2.5 border border-stone-200 rounded-xl text-sm bg-stone-50 text-stone-900 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-all"
                         >
-                          <option value="beginner">🌱 Beginner (0–1 years)</option>
-                          <option value="junior">🚀 Junior (1–3 years)</option>
-                          <option value="mid">⚡ Mid-Level (3–5 years)</option>
-                          <option value="senior">🏆 Senior (5+ years)</option>
+                          <option value="beginner"> Beginner (0–1 years)</option>
+                          <option value="junior"> Junior (1–3 years)</option>
+                          <option value="mid"> Mid-Level (3–5 years)</option>
+                          <option value="senior"> Senior (5+ years)</option>
                         </select>
                       </div>
                     </div>
@@ -468,9 +468,9 @@ const Settings: React.FC = () => {
                 <SectionCard title="Theme" subtitle="Choose how Arcio looks on your device">
                   <div className="py-4 space-y-3">
                     {[
-                      { value: 'system', label: 'System Default', desc: 'Follows your OS preference automatically', icon: '💻' },
-                      { value: 'light', label: 'Light Mode', desc: 'Clean white interface', icon: '☀️' },
-                      { value: 'dark', label: 'Dark Mode', desc: 'Easy on the eyes at night', icon: '🌙' },
+                      { value: 'system', label: 'System Default', desc: 'Follows your OS preference automatically' },
+                      { value: 'light', label: 'Light Mode', desc: 'Clean white interface',  },
+                      { value: 'dark', label: 'Dark Mode', desc: 'Easy on the eyes at night',  },
                     ].map((option) => (
                       <button
                         key={option.value}
@@ -482,7 +482,7 @@ const Settings: React.FC = () => {
                             : 'border-stone-200 bg-stone-50 hover:border-stone-300 hover:bg-white text-stone-700'
                         }`}
                       >
-                        <span className="text-xl">{option.icon}</span>
+                        
                         <div>
                           <p className="text-sm font-semibold">{option.label}</p>
                           <p className={`text-xs mt-0.5 ${appearance.theme === option.value ? 'text-stone-300' : 'text-stone-400'}`}>{option.desc}</p>
