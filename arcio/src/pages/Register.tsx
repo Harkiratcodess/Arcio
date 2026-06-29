@@ -40,24 +40,17 @@ const CheckIcon = () => (
   </svg>
 );
 
-// --- Strength Meter Logic ---
+// --- Format Error Helper ---
 
-const getPasswordStrength = (pwd: string) => {
-  if (!pwd) return { score: 0, label: "", color: "" };
-  let score = 0;
-  if (pwd.length >= 8) score++;
-  if (/[A-Z]/.test(pwd)) score++;
-  if (/[0-9]/.test(pwd)) score++;
-  if (/[^A-Za-z0-9]/.test(pwd)) score++;
-
-  const map = [
-    { label: "Too short", color: "bg-red-400" },
-    { label: "Weak", color: "bg-orange-400" },
-    { label: "Fair", color: "bg-amber-400" },
-    { label: "Good", color: "bg-teal-400" },
-    { label: "Strong", color: "bg-teal-600" },
-  ];
-  return { score, ...map[score] };
+const formatAuthError = (msg: string): string => {
+  const lowerMsg = msg.toLowerCase();
+  if (lowerMsg.includes("online data breach") || lowerMsg.includes("compromised") || lowerMsg.includes("pwned")) {
+    return "Security requirement: The password entered has been found in an online data breach check. For your account safety, please use a different, unique password.";
+  }
+  if (lowerMsg.includes("password is too weak") || lowerMsg.includes("password must contain") || lowerMsg.includes("minimum 8 characters")) {
+    return "A stronger password is required. Please check that it contains at least 8 characters, an uppercase letter, a number, and a special character.";
+  }
+  return msg;
 };
 
 // --- Main Component ---
@@ -77,11 +70,10 @@ export default function Register() {
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadingProvider, setLoadingProvider] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [focused, setFocused] = useState<string | null>(null);
   const [agreed, setAgreed] = useState(false);
-
-  const strength = getPasswordStrength(form.password);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -111,7 +103,8 @@ export default function Register() {
       // Redirect to verification page
       navigate("/verify-email");
     } catch (err: any) {
-      setError(err.errors?.[0]?.message || "Something went wrong. Please try again.");
+      const rawMessage = err.errors?.[0]?.message || "Something went wrong. Please try again.";
+      setError(formatAuthError(rawMessage));
     } finally {
       setLoading(false);
     }
@@ -119,6 +112,8 @@ export default function Register() {
 
   const handleOAuth = async (strategy: "oauth_github" | "oauth_google") => {
     if (!isLoaded || !signIn) return;
+    setLoadingProvider(strategy);
+    setError("");
     try {
       // Use signIn for OAuth — it handles both new and existing users
       await signIn.authenticateWithRedirect({
@@ -128,6 +123,7 @@ export default function Register() {
       });
     } catch (err: any) {
       setError(err.errors?.[0]?.message || "Authentication failed. Try signing in instead.");
+      setLoadingProvider(null);
     }
   };
 
@@ -204,18 +200,34 @@ export default function Register() {
             <button
               type="button"
               onClick={() => handleOAuth("oauth_github")}
-              className="group w-full flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 hover:border-stone-300 transition-all duration-200 text-[13.5px] font-medium text-stone-700 hover:-translate-y-0.5 hover:shadow active:scale-[0.98]"
+              disabled={loading || !!loadingProvider || !isLoaded}
+              className="group w-full flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 hover:border-stone-300 transition-all duration-200 text-[13.5px] font-medium text-stone-700 hover:-translate-y-0.5 hover:shadow active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              <span className="transition-transform duration-200 group-hover:scale-110"><GitHubIcon /></span>
-              Continue with GitHub
+              {loadingProvider === "oauth_github" ? (
+                <svg className="w-4 h-4 animate-spin text-stone-700" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              ) : (
+                <span className="transition-transform duration-200 group-hover:scale-110"><GitHubIcon /></span>
+              )}
+              {loadingProvider === "oauth_github" ? "Connecting to GitHub..." : "Continue with GitHub"}
             </button>
             <button
               type="button"
               onClick={() => handleOAuth("oauth_google")}
-              className="group w-full flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 hover:border-stone-300 transition-all duration-200 text-[13.5px] font-medium text-stone-700 hover:-translate-y-0.5 hover:shadow active:scale-[0.98]"
+              disabled={loading || !!loadingProvider || !isLoaded}
+              className="group w-full flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 hover:border-stone-300 transition-all duration-200 text-[13.5px] font-medium text-stone-700 hover:-translate-y-0.5 hover:shadow active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              <span className="transition-transform duration-200 group-hover:scale-110"><GoogleIcon /></span>
-              Continue with Google
+              {loadingProvider === "oauth_google" ? (
+                <svg className="w-4 h-4 animate-spin text-stone-700" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              ) : (
+                <span className="transition-transform duration-200 group-hover:scale-110"><GoogleIcon /></span>
+              )}
+              {loadingProvider === "oauth_google" ? "Connecting to Google..." : "Continue with Google"}
             </button>
           </div>
 
@@ -282,15 +294,27 @@ export default function Register() {
                 </button>
               </div>
 
-              {/* Password Strength Meter */}
+              {/* Password Requirements Checklist */}
               {form.password && (
-                <div className="mt-2">
-                  <div className="flex gap-1 mb-1">
-                    {[1, 2, 3, 4].map((i) => (
-                      <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-300 ${i <= strength.score ? strength.color : "bg-stone-100"}`} />
-                    ))}
-                  </div>
-                  <p className="text-[11px] text-stone-400">{strength.label}</p>
+                <div className="mt-3 p-3 bg-stone-50 border border-stone-200/55 rounded-xl space-y-1.5 transition-all duration-300">
+                  <p className="text-[10px] font-black uppercase tracking-wider text-stone-500 mb-1">Required for strong password:</p>
+                  {[
+                    { label: "Minimum 8 characters", met: form.password.length >= 8 },
+                    { label: "At least one uppercase letter (A-Z)", met: /[A-Z]/.test(form.password) },
+                    { label: "At least one number (0-9)", met: /[0-9]/.test(form.password) },
+                    { label: "At least one special character", met: /[^A-Za-z0-9]/.test(form.password) },
+                  ].map((req, i) => (
+                    <div key={i} className="flex items-center gap-2 text-xs">
+                      {req.met ? (
+                        <svg className="w-3.5 h-3.5 text-teal-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : (
+                        <div className="w-1.5 h-1.5 rounded-full bg-stone-300 ml-1.5 mr-1 shrink-0" />
+                      )}
+                      <span className={`transition-colors duration-200 ${req.met ? "text-stone-700 font-medium" : "text-stone-400"}`}>{req.label}</span>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

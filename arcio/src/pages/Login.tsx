@@ -47,6 +47,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadingProvider, setLoadingProvider] = useState<string | null>(null);
   const [error, setError] = useState("")
   const [focused, setFocused] = useState<string | null>(null);
 
@@ -76,6 +77,8 @@ export default function Login() {
   // GitHub OAuth
   const handleGitHub = async () => {
     if (!isLoaded) return
+    setLoadingProvider("oauth_github")
+    setError("")
     try {
       await signIn.authenticateWithRedirect({
         strategy: "oauth_github",
@@ -84,12 +87,15 @@ export default function Login() {
       })
     } catch (err: any) {
       setError(err.errors?.[0]?.message || "GitHub login failed")
+      setLoadingProvider(null)
     }
   }
 
   // Google OAuth
   const handleGoogle = async () => {
     if (!isLoaded) return
+    setLoadingProvider("oauth_google")
+    setError("")
     try {
       await signIn.authenticateWithRedirect({
         strategy: "oauth_google",
@@ -98,6 +104,7 @@ export default function Login() {
       })
     } catch (err: any) {
       setError(err.errors?.[0]?.message || "Google login failed")
+      setLoadingProvider(null)
     }
   }
 
@@ -172,17 +179,33 @@ export default function Login() {
           <div className="space-y-2.5 mb-6">
             <button
               onClick={handleGitHub}
-              className="group w-full flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 hover:border-stone-300 transition-all duration-200 text-[13.5px] font-medium text-stone-700 hover:-translate-y-0.5 hover:shadow active:scale-[0.98]"
+              disabled={loading || !!loadingProvider || !isLoaded}
+              className="group w-full flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 hover:border-stone-300 transition-all duration-200 text-[13.5px] font-medium text-stone-700 hover:-translate-y-0.5 hover:shadow active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              <span className="transition-transform duration-200 group-hover:scale-110"><GitHubIcon /></span>
-              Continue with GitHub
+              {loadingProvider === "oauth_github" ? (
+                <svg className="w-4 h-4 animate-spin text-stone-700" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              ) : (
+                <span className="transition-transform duration-200 group-hover:scale-110"><GitHubIcon /></span>
+              )}
+              {loadingProvider === "oauth_github" ? "Connecting to GitHub..." : "Continue with GitHub"}
             </button>
             <button
               onClick={handleGoogle}
-              className="group w-full flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 hover:border-stone-300 transition-all duration-200 text-[13.5px] font-medium text-stone-700 hover:-translate-y-0.5 hover:shadow active:scale-[0.98]"
+              disabled={loading || !!loadingProvider || !isLoaded}
+              className="group w-full flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 hover:border-stone-300 transition-all duration-200 text-[13.5px] font-medium text-stone-700 hover:-translate-y-0.5 hover:shadow active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              <span className="transition-transform duration-200 group-hover:scale-110"><GoogleIcon /></span>
-              Continue with Google
+              {loadingProvider === "oauth_google" ? (
+                <svg className="w-4 h-4 animate-spin text-stone-700" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              ) : (
+                <span className="transition-transform duration-200 group-hover:scale-110"><GoogleIcon /></span>
+              )}
+              {loadingProvider === "oauth_google" ? "Connecting to Google..." : "Continue with Google"}
             </button>
           </div>
 

@@ -19,6 +19,8 @@ import Footer from "./components/footer";
 // Auth Pages
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import TermsPage from "./pages/Terms";
+import PrivacyPage from "./pages/Privacy";
 
 // Dashboard Pages
 import IdeaEngine from "./pages/IdeaEngine";
@@ -227,6 +229,8 @@ function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Register />} />
       <Route path="/verify-email" element={<VerifyEmail />} />
+      <Route path="/terms" element={<TermsPage />} />
+      <Route path="/privacy" element={<PrivacyPage />} />
 
       {/* Protected */}
       <Route

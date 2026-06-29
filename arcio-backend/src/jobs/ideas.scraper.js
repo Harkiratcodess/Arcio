@@ -1,8 +1,12 @@
 require('dotenv').config()
+const dns = require('dns')
 const axios = require('axios')
 const cheerio = require('cheerio')
 const mongoose = require('mongoose')
 const Idea = require('../models/ideas.model')
+
+// Use Google Public DNS to resolve MongoDB Atlas SRV records
+dns.setServers(['8.8.8.8', '8.8.4.4'])
 const { getAIResponse } = require('../config/ai')
 const logger = require('../utils/logger')
 
@@ -152,12 +156,18 @@ async function runIdeaScraper() {
 
     const aiPrompt = `You are an idea enrichment engine. Extract junior-friendly project ideas buildable in 1-4 weeks.
 
+Crucial Language & Summary requirements:
+- Convert and translate all project details (title, description, stack, features, skillsTaught) strictly into clean, professional, and clear English, even if the input text contains Chinese, Spanish, or any other foreign languages.
+- The description MUST be a professional summary of what the project is about and what they will learn, written in high-quality developer terms.
+- For each idea, generate a 'features' array containing 3 to 4 distinct key architectural features or project requirements (e.g., "OAuth 2.0 Auth", "Real-time sync via WebSockets", "Responsive UI dashboard", "PostgreSQL database schemas"). DO NOT use generic placeholders.
+
 For each idea return:
-- title (exact)
-- description (2 sentences, what they'll learn)
+- title (exact, in professional English)
+- description (2 sentences, professional English summary of the project)
 - difficulty: Beginner | Intermediate | Advanced
 - stack: array of tech names
-- skillsTaught: array of 3-4 skills
+- skillsTaught: array of 3-4 skills (in professional English)
+- features: array of 3-4 key architectural features/specifications (in professional English)
 - importanceScore: 1-10
 - url (original)
 - source (original)

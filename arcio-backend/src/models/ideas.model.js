@@ -11,6 +11,7 @@ const ideasSchema = new mongoose.Schema({
   importanceScore: Number, // 1-10, how trending
   categoryTags: [String], // ['AI', 'Web3', 'Productivity']
   skillsTaught: [String],
+  features: [String],
   createdAt: { type: Date, default: Date.now },
   refreshedAt: { type: Date, default: Date.now }
 })

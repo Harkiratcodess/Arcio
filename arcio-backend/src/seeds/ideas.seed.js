@@ -1,6 +1,10 @@
 const mongoose = require('mongoose')
+const dns = require('dns')
 const Idea = require('../models/ideas.model')
 require('dotenv').config()
+
+// Use Google Public DNS to resolve MongoDB Atlas SRV records
+dns.setServers(['8.8.8.8', '8.8.4.4'])
 
 const sampleIdeas = [
   {
@@ -12,7 +16,8 @@ const sampleIdeas = [
     source: 'github',
     importanceScore: 8,
     categoryTags: ['Real-time', 'Web App', 'Beginner-friendly'],
-    skillsTaught: ['WebSockets', 'State management', 'Database design', 'Authentication']
+    skillsTaught: ['WebSockets', 'State management', 'Database design', 'Authentication'],
+    features: ['Real-time sync via Socket.io', 'JWT Authentication', 'State management with Redux', 'MongoDB database design']
   },
   {
     title: 'Next.js SaaS Boilerplate',
@@ -23,7 +28,8 @@ const sampleIdeas = [
     source: 'producthunt',
     importanceScore: 9,
     categoryTags: ['SaaS', 'Template', 'Full-stack'],
-    skillsTaught: ['Next.js', 'Payment integration', 'Multi-tenancy', 'Deployment']
+    skillsTaught: ['Next.js', 'Payment integration', 'Multi-tenancy', 'Deployment'],
+    features: ['Stripe payment checkout', 'Clerk multi-session auth', 'Prisma Schema definitions', 'Subdomain routing']
   },
   {
     title: 'GitHub Profile Analyzer',
@@ -34,7 +40,8 @@ const sampleIdeas = [
     source: 'github',
     importanceScore: 7,
     categoryTags: ['Data viz', 'API integration', 'Portfolio project'],
-    skillsTaught: ['REST APIs', 'Data visualization', 'Caching strategies']
+    skillsTaught: ['REST APIs', 'Data visualization', 'Caching strategies'],
+    features: ['GitHub REST & GraphQL API', 'Data charts via Chart.js', 'Redis caching for API calls', 'Tailwind responsive layout']
   },
   {
     title: 'Expense Tracker with AI Categorization',
@@ -45,7 +52,8 @@ const sampleIdeas = [
     source: 'reddit',
     importanceScore: 6,
     categoryTags: ['Finance', 'AI', 'Full-stack'],
-    skillsTaught: ['AI integration', 'Financial logic', 'Data export']
+    skillsTaught: ['AI integration', 'Financial logic', 'Data export'],
+    features: ['AI receipt parsing', 'Monthly expense charts', 'CSV/Excel report export', 'Secure wallet integrations']
   },
   {
     title: 'Discord Bot for Community Management',
@@ -56,7 +64,8 @@ const sampleIdeas = [
     source: 'hackernews',
     importanceScore: 5,
     categoryTags: ['API integration', 'Bot', 'Community'],
-    skillsTaught: ['Event-driven programming', 'Message parsing', 'Hosting']
+    skillsTaught: ['Event-driven programming', 'Message parsing', 'Hosting'],
+    features: ['Discord API message parsing', 'Automated role moderation', 'Cron-based status checks', 'Persistent MongoDB logging']
   },
   {
     title: 'Markdown Blog with SEO',
@@ -67,7 +76,8 @@ const sampleIdeas = [
     source: 'devto',
     importanceScore: 7,
     categoryTags: ['Static site', 'SEO', 'Content'],
-    skillsTaught: ['MDX parsing', 'SEO optimization', 'Static generation']
+    skillsTaught: ['MDX parsing', 'SEO optimization', 'Static generation'],
+    features: ['MDX file parsing', 'Dynamic RSS & XML Sitemap', 'Tailwind styling & Dark mode', 'Next.js static generation']
   },
   {
     title: 'Real-time Chat App with Video',
@@ -78,7 +88,8 @@ const sampleIdeas = [
     source: 'github',
     importanceScore: 8,
     categoryTags: ['Real-time', 'Communication', 'WebRTC'],
-    skillsTaught: ['WebRTC', 'P2P networks', 'Stream handling']
+    skillsTaught: ['WebRTC', 'P2P networks', 'Stream handling'],
+    features: ['Peer-to-peer WebRTC calls', 'Media stream fallback servers', 'Realtime socket messaging', 'File upload & attachment sharing']
   },
   {
     title: 'E-commerce Store with Inventory',
@@ -89,7 +100,8 @@ const sampleIdeas = [
     source: 'producthunt',
     importanceScore: 9,
     categoryTags: ['E-commerce', 'Full-stack', 'Business'],
-    skillsTaught: ['Payment processing', 'Inventory systems', 'Admin dashboards']
+    skillsTaught: ['Payment processing', 'Inventory systems', 'Admin dashboards'],
+    features: ['Stripe payment webhook', 'Database inventory lock checks', 'Admin inventory analytics dashboard', 'Flexible cart state cache']
   },
   {
     title: 'Code Snippet Manager (like Gist)',
@@ -100,7 +112,8 @@ const sampleIdeas = [
     source: 'reddit',
     importanceScore: 6,
     categoryTags: ['Developer tool', 'Productivity', 'Useful'],
-    skillsTaught: ['Code highlighting', 'Search algorithms', 'Sharing/permissions']
+    skillsTaught: ['Code highlighting', 'Search algorithms', 'Sharing/permissions'],
+    features: ['Prism.js syntax highlighting', 'One-click public URL sharing', 'Git-style snippet revisions', 'Elasticsearch code indexing']
   },
   {
     title: 'AI-powered Email Assistant',
@@ -111,7 +124,8 @@ const sampleIdeas = [
     source: 'hackernews',
     importanceScore: 8,
     categoryTags: ['AI', 'Automation', 'Productivity'],
-    skillsTaught: ['Email APIs', 'AI integration', 'NLP basics']
+    skillsTaught: ['Email APIs', 'AI integration', 'NLP basics'],
+    features: ['OpenAI prompt templates', 'OAuth 2.0 Gmail integration', 'Thread summarization algorithms', 'Priority classification index']
   },
   {
     title: 'Personal Knowledge Base (like Notion)',
@@ -122,7 +136,8 @@ const sampleIdeas = [
     source: 'github',
     importanceScore: 9,
     categoryTags: ['Productivity', 'Database design', 'Advanced'],
-    skillsTaught: ['Rich text editing', 'Full-text search', 'Complex queries']
+    skillsTaught: ['Rich text editing', 'Full-text search', 'Complex queries'],
+    features: ['Rich-text editor components', 'Self-referencing database tables', 'Instant full-text query search', 'PDF & Markdown file export']
   },
   {
     title: 'Fitness Tracker with Workouts',
@@ -133,7 +148,8 @@ const sampleIdeas = [
     source: 'devto',
     importanceScore: 6,
     categoryTags: ['Mobile', 'Health', 'AI'],
-    skillsTaught: ['React Native', 'Health data handling', 'Notifications']
+    skillsTaught: ['React Native', 'Health data handling', 'Notifications'],
+    features: ['Mobile-optimized layout', 'AI workout generator routines', 'Push notification scheduler', 'Personal progress charting']
   }
 ]
 

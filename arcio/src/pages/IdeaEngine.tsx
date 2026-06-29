@@ -104,7 +104,7 @@ const IdeaEngine: React.FC = () => {
       if (data.success && Array.isArray(data.data)) {
         const enrichedIdeas = data.data.map((idea: any) => ({
           ...idea,
-          features: idea.features || ['Modular Architecture', 'Scalable Backend', 'Clean Patterns'],
+          features: idea.features && idea.features.length > 0 ? idea.features : ['Modular Architecture', 'Scalable Backend', 'Clean Patterns'],
           demandScore: idea.demandScore || Math.floor(Math.random() * 40) + 60
         }));
         setIdeas(enrichedIdeas);
